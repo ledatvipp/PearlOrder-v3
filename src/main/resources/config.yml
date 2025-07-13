@@ -1,0 +1,206 @@
+# LeDatOrder Configuration
+
+gui:
+  # Main Order GUI
+  order:
+    title: "&6Orders (Page %page%)"
+    size: 54
+    
+    order-item:
+      display-name: "&6%player%'s Order"
+      lore:
+        - "&f%type%"
+        - "&a%price%&f/1 item"
+        - " "
+        - "&a%revived%/%required% &7Delivered"
+        - "&a%paid%/%total_paid% &7Paid"
+        - " "
+        - "&fNhấn để giao đồ cho &b%player%"
+    
+    sort-item:
+      material: CAULDRON
+      display-name: "&6Sort"
+      slot: 47
+    
+    filter-item:
+      material: HOPPER
+      display-name: "&6Filter"
+      slot: 48
+    
+    refresh-item:
+      material: MAP
+      display-name: "&6Refresh"
+      lore:
+        - "&7Làm mới GUI"
+      slot: 49
+    
+    search-item:
+      material: OAK_SIGN
+      display-name: "&6Tìm kiếm"
+      lore:
+        - "&7Tìm kiếm material nhanh"
+      slot: 50
+    
+    create-item:
+      material: DROPPER
+      display-name: "&6Tạo Order"
+      lore:
+        - "&7Mở GUI tạo order mới"
+      slot: 51
+    
+    previous-page-item:
+      material: ARROW
+      display-name: "&6Trang trước"
+      slot: 45
+    
+    next-page-item:
+      material: ARROW
+      display-name: "&6Trang sau"
+      slot: 53
+  
+  # My Order GUI
+  my-order:
+    title: "&6Your Orders"
+    size: 36
+    
+    order-item:
+      display-name: "&6%player%'s Order"
+      lore:
+        - "&a%amount% &f%material%"
+        - "&a$%price% per item"
+        - " "
+        - "&e%received%/%required% &7Delivered"
+        - "&e%paid%/%total% &7Paid"
+    
+    border-item:
+      material: BLACK_STAINED_GLASS_PANE
+      display-name: " "
+    
+    create-item:
+      material: MAP
+      display-name: "&6Create New Order"
+      lore:
+        - "&7Click to create a new order"
+      slot: 31
+  
+  # Order Manage GUI
+  order-manage:
+    title: "&6Manage Order"
+    size: 27
+    
+    order-info-item:
+      display-name: "&6Your Order: %material%"
+      lore:
+        - "&7Required: &a%required%"
+        - "&7Price per item: &a$%price%"
+        - " "
+        - "&7Delivered: &e%received%/%required%"
+        - "&7Paid: &e$%paid%/%total%"
+      slot: 13
+    
+    cancel-item:
+      material: BARRIER
+      display-name: "&cCancel Order"
+      lore:
+        - "&7Click to cancel this order"
+      slot: 12
+    
+    collect-item:
+      material: CHEST
+      display-name: "&aCollect Items"
+      lore:
+        - "&7Click to collect delivered items"
+        - "&7Available: &e%received%"
+      slot: 14
+  
+  # Create Order GUI
+  create-order:
+    title: "&6Create Order"
+    size: 27
+    
+    back-item:
+      material: RED_STAINED_GLASS_PANE
+      display-name: "&cBack"
+      lore:
+        - "&7Return to Your Orders"
+      slot: 10
+    
+    material-item:
+      material: STONE
+      display-name: "&6Select Material"
+      lore:
+        - "&7Current: &a%material%"
+        - "&7Click to change material"
+      slot: 12
+    
+    amount-item:
+      material: CHEST
+      display-name: "&6Set Amount"
+      lore:
+        - "&7Current: &a%amount%"
+        - "&7Click to set amount"
+      slot: 13
+    
+    price-item:
+      material: SUNFLOWER
+      display-name: "&6Set Price Per Item"
+      lore:
+        - "&7Current: &a$%price%"
+        - "&7Click to set price"
+      slot: 14
+    
+    confirm-item:
+      material: LIME_STAINED_GLASS_PANE
+      display-name: "&aConfirm"
+      lore:
+        - "&7Material: &a%material%"
+        - "&7Amount: &a%amount%"
+        - "&7Price per item: &a$%price%"
+        - "&7Total cost: &a$%total%"
+      slot: 16
+    
+    # Material Select GUI
+    material-select:
+      title: "&6Select Material"
+      size: 54
+      
+      item:
+        display-name: "&6%material%"
+        lore:
+          - "&7Click to select this material"
+        
+      filter-item:
+        material: HOPPER
+        display-name: "&6Filter Materials"
+        slot: 47
+      
+      common-item:
+        material: CHEST
+        display-name: "&6Common Materials"
+        lore:
+          - "&7Show only common materials"
+        slot: 48
+      
+      back-item:
+        material: RED_STAINED_GLASS_PANE
+        display-name: "&cBack"
+        lore:
+          - "&7Return to Create Order"
+        slot: 49
+      
+      search-item:
+        material: OAK_SIGN
+        display-name: "&6Search Materials"
+        lore:
+          - "&7Click to search for materials"
+        slot: 50
+      
+      previous-page-item:
+        material: ARROW
+        display-name: "&6Previous Page"
+        slot: 45
+      
+      next-page-item:
+        material: ARROW
+        display-name: "&6Next Page"
+        slot: 53

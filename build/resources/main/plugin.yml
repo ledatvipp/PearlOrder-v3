@@ -1,0 +1,20 @@
+name: LeDatOrder
+version: '1.0'
+main: org.ledat.leDatOrder.LeDatOrder
+api-version: '1.20'
+authors: [ zonecluck ]
+website: facebook.com/zonecluck
+folia-supported: true
+depend: [Vault]
+commands:
+  order:
+    description: GUI Order
+    aliases: [orders]
+
+permissions:
+  ledatorder.use:
+    description: Allow player use /order
+    default: true
+  ledatorder.admin:
+    description: Allow player use admin command
+    default: op
