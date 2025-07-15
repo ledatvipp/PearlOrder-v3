@@ -12,6 +12,7 @@ import org.nexus.leDatOrder.utils.ColorUtils;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class MyOrderGUI {
     private final LeDatOrder plugin;
@@ -37,8 +38,11 @@ public class MyOrderGUI {
     private void updateInventory() {
         inventory.clear();
 
-        // Lấy danh sách order của người chơi
-        List<Order> playerOrders = plugin.getOrderManager().getOrdersByPlayer(player.getUniqueId());
+        // Lấy danh sách order của người chơi và lọc ra những order chưa hoàn thành
+        List<Order> playerOrders = plugin.getOrderManager().getOrdersByPlayer(player.getUniqueId())
+                .stream()
+                .filter(order -> !order.isCompleted() || order.getCollectedAmount() < order.getReceivedAmount())
+                .collect(Collectors.toList());
 
         // Hiển thị các order của người chơi (slot 0-26)
         for (int i = 0; i < Math.min(playerOrders.size(), 27); i++) {

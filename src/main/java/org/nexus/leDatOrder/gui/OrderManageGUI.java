@@ -106,9 +106,11 @@ public class OrderManageGUI {
             new MyOrderGUI(plugin, player).open();
             return;
         }
-    
-        // Trả lại tiền thừa nếu có
-        double refundAmount = order.getPaidAmount();
+
+        // Tính toán số tiền cần refund: chỉ refund phần chưa nhận được hàng
+        int itemsNotReceived = order.getRequiredAmount() - order.getReceivedAmount();
+        double refundAmount = itemsNotReceived * order.getPricePerItem();
+
         if (refundAmount > 0) {
             plugin.getVaultManager().deposit(player, refundAmount);
             player.sendMessage(ColorUtils.colorize("&aRefunded &e$" + String.format("%.2f", refundAmount) + " &ato your account."));
