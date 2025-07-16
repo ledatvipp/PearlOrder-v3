@@ -170,16 +170,48 @@ public class OrderListener implements Listener {
             } else if (slot == 13 && clickedItem.getType() == Material.CHEST) {
                 // Nhập số lượng
                 player.closeInventory();
-                player.sendMessage(ColorUtils.colorize("&aPlease enter the amount in chat:"));
+                player.sendMessage(plugin.getConfigManager().getMessage("input.amount-prompt"));
                 awaitingChatInput.put(player.getUniqueId(), ChatInputType.AMOUNT);
             } else if (slot == 14 && clickedItem.getType() == Material.SUNFLOWER) {
                 // Nhập giá tiền
                 player.closeInventory();
-                player.sendMessage(ColorUtils.colorize("&aPlease enter the price per item in chat:"));
+                player.sendMessage(plugin.getConfigManager().getMessage("input.price-prompt"));
                 awaitingChatInput.put(player.getUniqueId(), ChatInputType.PRICE);
             } else if (slot == 16 && clickedItem.getType() == Material.LIME_STAINED_GLASS_PANE) {
                 // Xác nhận tạo order
                 CreateOrderGUI.createOrder(plugin, player);
+            } else if (slot == 22) {
+                // Chuyển đổi loại tiền tệ
+                CreateOrderGUI.CreateOrderData data = CreateOrderGUI.getCreateData(player);
+                if (data != null) {
+                    // Kiểm tra xem cả hai loại tiền tệ có khả dụng không
+                    boolean vaultAvailable = plugin.getVaultManager().isEnabled();
+                    boolean playerPointsAvailable = plugin.getPlayerPointsManager().isEnabled();
+                    
+                    if (!vaultAvailable && !playerPointsAvailable) {
+                        player.sendMessage(plugin.getConfigManager().getMessage("currency.no-system-available"));
+                        return;
+                    }
+                    
+                    // Chuyển đổi loại tiền tệ
+                    data.toggleCurrencyType();
+                    
+                    // Kiểm tra xem loại tiền tệ mới có khả dụng không
+                    if (data.getCurrencyType() == org.nexus.leDatOrder.enums.CurrencyType.VAULT && !vaultAvailable) {
+                        data.toggleCurrencyType(); // Chuyển lại nếu Vault không khả dụng
+                        player.sendMessage(plugin.getConfigManager().getMessage("currency.vault-unavailable-switch"));
+                    } else if (data.getCurrencyType() == org.nexus.leDatOrder.enums.CurrencyType.PLAYERPOINTS && !playerPointsAvailable) {
+                        data.toggleCurrencyType(); // Chuyển lại nếu PlayerPoints không khả dụng
+                        player.sendMessage(plugin.getConfigManager().getMessage("currency.playerpoints-unavailable-switch"));
+                    }
+                    
+                    // Thông báo loại tiền tệ hiện tại
+                    String currencyName = data.getCurrencyType() == org.nexus.leDatOrder.enums.CurrencyType.VAULT ? "Vault Money" : "PlayerPoints";
+                    player.sendMessage(plugin.getConfigManager().getMessage("currency.type-changed", "%type%", currencyName));
+                    
+                    // Cập nhật GUI
+                    new CreateOrderGUI(plugin, player).open();
+                }
             }
         } else if (title.equals(ColorUtils.colorize("&6Select Material"))) {
             event.setCancelled(true);

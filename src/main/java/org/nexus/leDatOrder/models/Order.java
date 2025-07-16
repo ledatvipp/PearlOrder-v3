@@ -2,6 +2,7 @@ package org.nexus.leDatOrder.models;
 
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
+import org.nexus.leDatOrder.enums.CurrencyType;
 
 import java.util.UUID;
 import java.util.Date;
@@ -19,7 +20,9 @@ public class Order {
     private Date createdAt;
     private OrderType type;
     private int collectedAmount;
+    private CurrencyType currencyType;
 
+    // Constructor cũ (để tương thích ngược)
     public Order(UUID playerUUID, String playerName, Material material, double pricePerItem, int requiredAmount) {
         this.id = UUID.randomUUID();
         this.playerUUID = playerUUID;
@@ -32,7 +35,25 @@ public class Order {
         this.paidAmount = 0;
         this.createdAt = new Date();
         this.type = getOrderTypeFromMaterial(material);
-        this.collectedAmount = 0; // Khởi tạo giá trị ban đầu
+        this.collectedAmount = 0;
+        this.currencyType = CurrencyType.VAULT; // Mặc định là Vault
+    }
+
+    // Constructor mới với CurrencyType
+    public Order(UUID playerUUID, String playerName, Material material, double pricePerItem, int requiredAmount, CurrencyType currencyType) {
+        this.id = UUID.randomUUID();
+        this.playerUUID = playerUUID;
+        this.playerName = playerName;
+        this.material = material;
+        this.pricePerItem = pricePerItem;
+        this.requiredAmount = requiredAmount;
+        this.receivedAmount = 0;
+        this.totalPaid = pricePerItem * requiredAmount;
+        this.paidAmount = 0;
+        this.createdAt = new Date();
+        this.type = getOrderTypeFromMaterial(material);
+        this.collectedAmount = 0;
+        this.currencyType = currencyType;
     }
 
     public UUID getId() {
@@ -102,6 +123,14 @@ public class Order {
         if (this.collectedAmount > this.requiredAmount) {
             this.collectedAmount = this.requiredAmount;
         }
+    }
+
+    public CurrencyType getCurrencyType() {
+        return currencyType;
+    }
+
+    public void setCurrencyType(CurrencyType currencyType) {
+        this.currencyType = currencyType;
     }
 
     public boolean isCompleted() {

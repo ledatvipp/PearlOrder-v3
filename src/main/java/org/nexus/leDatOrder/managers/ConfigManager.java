@@ -61,9 +61,7 @@ public class ConfigManager {
     }
 
     private void setDefaults() {
-        // Chuyển cấu hình cũ sang cấu trúc mới nếu cần
         if (config.contains("gui.title") && !config.contains("gui.order.title")) {
-            // Di chuyển cấu hình cũ sang cấu trúc mới
             config.set("gui.order.title", config.getString("gui.title"));
             config.set("gui.order.size", config.getInt("gui.size"));
             config.set("gui.order.order-item.display-name", config.getString("gui.order-item.display-name"));
@@ -75,8 +73,7 @@ public class ConfigManager {
             config.set("gui.order.create-item.slot", config.getInt("gui.create-item.slot"));
             config.set("gui.order.previous-page-item.slot", config.getInt("gui.previous-page-item.slot"));
             config.set("gui.order.next-page-item.slot", config.getInt("gui.next-page-item.slot"));
-            
-            // Xóa cấu hình cũ
+
             config.set("gui.title", null);
             config.set("gui.size", null);
             config.set("gui.order-item", null);
@@ -89,14 +86,119 @@ public class ConfigManager {
             config.set("gui.next-page-item", null);
         }
 
-        // Thiết lập các giá trị mặc định cho các GUI
+        setDefaultMessages();
         setDefaultOrderGUI();
         setDefaultMyOrderGUI();
         setDefaultOrderManageGUI();
         setDefaultCreateOrderGUI();
-        setDefaultMaterialSelectGUI(); // Thêm dòng này
+        setDefaultMaterialSelectGUI();
+        setDefaultOrderDeliveryGUI();
 
         saveConfig();
+    }
+
+    private void setDefaultMessages() {
+        String basePath = "messages";
+        
+        // Order creation messages
+        if (!config.contains(basePath + ".order.creation.success")) {
+            config.set(basePath + ".order.creation.success", "&aOrder created successfully! (&e%current%&a/&e%max%&a)");
+        }
+        if (!config.contains(basePath + ".order.creation.amount-invalid")) {
+            config.set(basePath + ".order.creation.amount-invalid", "&cAmount must be greater than 0.");
+        }
+        if (!config.contains(basePath + ".order.creation.price-invalid")) {
+            config.set(basePath + ".order.creation.price-invalid", "&cPrice must be greater than 0.");
+        }
+        if (!config.contains(basePath + ".order.creation.limit-reached")) {
+            config.set(basePath + ".order.creation.limit-reached", "&cBạn đã đạt giới hạn số lượng order (&e%max%&c). Hãy hoàn thành hoặc hủy một số order hiện tại.");
+        }
+        if (!config.contains(basePath + ".order.creation.insufficient-money")) {
+            config.set(basePath + ".order.creation.insufficient-money", "&cYou don't have enough money to create this order. You need %amount%");
+        }
+        if (!config.contains(basePath + ".order.creation.insufficient-points")) {
+            config.set(basePath + ".order.creation.insufficient-points", "&cYou don't have enough points to create this order. You need %amount% points");
+        }
+        if (!config.contains(basePath + ".order.creation.payment-failed")) {
+            config.set(basePath + ".order.creation.payment-failed", "&cPayment failed! Please try again.");
+        }
+        if (!config.contains(basePath + ".order.creation.fee-charged-vault")) {
+            config.set(basePath + ".order.creation.fee-charged-vault", "&aYou have been charged &e$%fee% &afor creating this order.");
+        }
+        if (!config.contains(basePath + ".order.creation.fee-charged-points")) {
+            config.set(basePath + ".order.creation.fee-charged-points", "&aYou have been charged &e%fee% Points &afor creating this order.");
+        }
+        if (!config.contains(basePath + ".order.creation.payment-success")) {
+            config.set(basePath + ".order.creation.payment-success", "&aYou have paid &e%amount% &afor this order.");
+        }
+        
+        // Currency messages
+        if (!config.contains(basePath + ".currency.vault-unavailable")) {
+            config.set(basePath + ".currency.vault-unavailable", "&cVault is not available!");
+        }
+        if (!config.contains(basePath + ".currency.playerpoints-unavailable")) {
+            config.set(basePath + ".currency.playerpoints-unavailable", "&cPlayerPoints is not available!");
+        }
+        if (!config.contains(basePath + ".currency.no-system-available")) {
+            config.set(basePath + ".currency.no-system-available", "&cNo currency system is available!");
+        }
+        if (!config.contains(basePath + ".currency.vault-unavailable-switch")) {
+            config.set(basePath + ".currency.vault-unavailable-switch", "&cVault is not available! Using PlayerPoints instead.");
+        }
+        if (!config.contains(basePath + ".currency.playerpoints-unavailable-switch")) {
+            config.set(basePath + ".currency.playerpoints-unavailable-switch", "&cPlayerPoints is not available! Using Vault instead.");
+        }
+        if (!config.contains(basePath + ".currency.type-changed")) {
+            config.set(basePath + ".currency.type-changed", "&aCurrency type changed to: &e%type%");
+        }
+        
+        // Input messages
+        if (!config.contains(basePath + ".input.amount-prompt")) {
+            config.set(basePath + ".input.amount-prompt", "&aPlease enter the amount in chat:");
+        }
+        if (!config.contains(basePath + ".input.price-prompt")) {
+            config.set(basePath + ".input.price-prompt", "&aPlease enter the price per item in chat:");
+        }
+        if (!config.contains(basePath + ".input.search-prompt")) {
+            config.set(basePath + ".input.search-prompt", "&aPlease enter search term in chat:");
+        }
+        if (!config.contains(basePath + ".input.amount-set")) {
+            config.set(basePath + ".input.amount-set", "&aAmount set to &e%amount%");
+        }
+        if (!config.contains(basePath + ".input.price-set")) {
+            config.set(basePath + ".input.price-set", "&aPrice set to &e$%price%");
+        }
+        if (!config.contains(basePath + ".input.material-set")) {
+            config.set(basePath + ".input.material-set", "&aMaterial set to &e%material%");
+        }
+        if (!config.contains(basePath + ".input.search-result")) {
+            config.set(basePath + ".input.search-result", "&aKết quả tìm kiếm: &e%search%");
+        }
+        if (!config.contains(basePath + ".input.search-cleared")) {
+            config.set(basePath + ".input.search-cleared", "&aSearch cleared");
+        }
+        if (!config.contains(basePath + ".input.invalid-number")) {
+            config.set(basePath + ".input.invalid-number", "&cInvalid number format. Please enter a valid number.");
+        }
+        
+        // Sort and filter messages
+        if (!config.contains(basePath + ".sort.changed")) {
+            config.set(basePath + ".sort.changed", "&aSắp xếp theo: &e%type%");
+        }
+        if (!config.contains(basePath + ".filter.changed")) {
+            config.set(basePath + ".filter.changed", "&aLọc theo: &e%type%");
+        }
+        
+        // Delivery messages
+        if (!config.contains(basePath + ".delivery.self-delivery")) {
+            config.set(basePath + ".delivery.self-delivery", "&cBạn không thể giao đồ cho chính mình!");
+        }
+        if (!config.contains(basePath + ".delivery.success")) {
+            config.set(basePath + ".delivery.success", "&aSuccessfully delivered %amount% %material% to %player%'s order!");
+        }
+        if (!config.contains(basePath + ".delivery.payment-received")) {
+            config.set(basePath + ".delivery.payment-received", "&aYou received %amount% for delivering items!");
+        }
     }
 
     public String getMaterialSelectGuiTitle() {
@@ -327,13 +429,58 @@ public class ConfigManager {
         setDefaultItem(basePath + ".back-item", "RED_STAINED_GLASS_PANE", "&cBack", 10, Arrays.asList("&7Return to Your Orders"));
         setDefaultItem(basePath + ".material-item", "STONE", "&6Select Material", 12, Arrays.asList("&7Current: &a%material%", "&7Click to change material"));
         setDefaultItem(basePath + ".amount-item", "CHEST", "&6Set Amount", 13, Arrays.asList("&7Current: &a%amount%", "&7Click to set amount"));
-        setDefaultItem(basePath + ".price-item", "SUNFLOWER", "&6Set Price Per Item", 14, Arrays.asList("&7Current: &a$%price%", "&7Click to set price"));
+        setDefaultItem(basePath + ".price-item", "SUNFLOWER", "&6Set Price Per Item", 14, Arrays.asList("&7Current: &a%price%", "&7Click to set price"));
         setDefaultItem(basePath + ".confirm-item", "LIME_STAINED_GLASS_PANE", "&aConfirm", 16, Arrays.asList(
                 "&7Material: &a%material%",
                 "&7Amount: &a%amount%",
-                "&7Price per item: &a$%price%",
-                "&7Total cost: &a$%total%"
+                "&7Price per item: &a%price%",
+                "&7Total cost: &a%total%",
+                "&7Currency: &e%currency%"
         ));
+        
+        // Thêm currency type button
+        setDefaultItem(basePath + ".currency-item", "GOLD_INGOT", "&6Currency Type", 22, Arrays.asList(
+                "&7Current: &a%currency%",
+                "&7Click to switch currency",
+                "",
+                "&a✓ &7Vault Money Available: %vault_status%",
+                "&a✓ &7PlayerPoints Available: %points_status%"
+        ));
+    }
+
+    private void setDefaultOrderDeliveryGUI() {
+        String basePath = "gui.order-delivery";
+        
+        if (!config.contains(basePath + ".title")) {
+            config.set(basePath + ".title", "&6Order -> %player%");
+        }
+        
+        if (!config.contains(basePath + ".size")) {
+            config.set(basePath + ".size", 45);
+        }
+        
+        setDefaultItem(basePath + ".back-item", "BARRIER", "&cBack to Orders", 40, Arrays.asList("&7Return to order list"));
+        
+        if (!config.contains(basePath + ".order-info.display-name")) {
+            config.set(basePath + ".order-info.display-name", "&6%player%'s Order");
+        }
+        
+        if (!config.contains(basePath + ".order-info.lore")) {
+            config.set(basePath + ".order-info.lore", Arrays.asList(
+                    "&7Required: &a%required% %material%",
+                    "&7Price per item: &a%price%",
+                    "&7Currency: &e%currency%",
+                    "",
+                    "&7Progress: &e%received%/%required%",
+                    "&7Remaining: &c%remaining%",
+                    "",
+                    "&7Put items in the inventory to deliver"
+            ));
+        }
+        
+        if (!config.contains(basePath + ".order-info.slot")) {
+            config.set(basePath + ".order-info.slot", 4);
+        }
     }
 
     private void setDefaultItem(String path, String material, String displayName, int slot) {
@@ -463,5 +610,101 @@ public class ConfigManager {
 
     public int getCreateOrderGuiSize() {
         return config.getInt("gui.create-order.size", 27);
+    }
+
+    // Getter methods cho messages
+    public String getMessage(String path) {
+        return ColorUtils.colorize(config.getString("messages." + path, "&cMessage not found: " + path));
+    }
+    
+    public String getMessage(String path, String... replacements) {
+        String message = getMessage(path);
+        for (int i = 0; i < replacements.length; i += 2) {
+            if (i + 1 < replacements.length) {
+                message = message.replace(replacements[i], replacements[i + 1]);
+            }
+        }
+        return message;
+    }
+
+    // Getter methods cho CreateOrderGUI currency button
+    public Material getCreateOrderCurrencyItemMaterial() {
+        return getItemMaterial("gui.create-order.currency-item", Material.GOLD_INGOT);
+    }
+    
+    public String getCreateOrderCurrencyItemDisplayName() {
+        return getItemDisplayName("gui.create-order.currency-item", "&6Currency Type");
+    }
+    
+    public List<String> getCreateOrderCurrencyItemLore() {
+        List<String> lore = getItemLore("gui.create-order.currency-item");
+        if (lore.isEmpty()) {
+            lore = ColorUtils.colorize(Arrays.asList(
+                    "&7Current: &a%currency%",
+                    "&7Click to switch currency",
+                    "",
+                    "&a✓ &7Vault Money Available: %vault_status%",
+                    "&a✓ &7PlayerPoints Available: %points_status%"
+            ));
+        }
+        return lore;
+    }
+    
+    public int getCreateOrderCurrencyItemSlot() {
+        return getItemSlot("gui.create-order.currency-item", 22);
+    }
+
+    // Getter methods cho OrderDeliveryGUI
+    public String getOrderDeliveryGuiTitle() {
+        return ColorUtils.colorize(config.getString("gui.order-delivery.title", "&6Order -> %player%"));
+    }
+
+    public int getOrderDeliveryGuiSize() {
+        return config.getInt("gui.order-delivery.size", 45);
+    }
+    
+    public String getOrderDeliveryOrderInfoDisplayName() {
+        return ColorUtils.colorize(config.getString("gui.order-delivery.order-info.display-name", "&6%player%'s Order"));
+    }
+    
+    public List<String> getOrderDeliveryOrderInfoLore() {
+        List<String> lore = config.getStringList("gui.order-delivery.order-info.lore");
+        if (lore.isEmpty()) {
+            lore = Arrays.asList(
+                    "&7Required: &a%required% %material%",
+                    "&7Price per item: &a%price%",
+                    "&7Currency: &e%currency%",
+                    "",
+                    "&7Progress: &e%received%/%required%",
+                    "&7Remaining: &c%remaining%",
+                    "",
+                    "&7Put items in the inventory to deliver"
+            );
+        }
+        return ColorUtils.colorize(lore);
+    }
+    
+    public int getOrderDeliveryOrderInfoSlot() {
+        return config.getInt("gui.order-delivery.order-info.slot", 4);
+    }
+    
+    public Material getOrderDeliveryBackItemMaterial() {
+        return getItemMaterial("gui.order-delivery.back-item", Material.BARRIER);
+    }
+    
+    public String getOrderDeliveryBackItemDisplayName() {
+        return getItemDisplayName("gui.order-delivery.back-item", "&cBack to Orders");
+    }
+    
+    public List<String> getOrderDeliveryBackItemLore() {
+        List<String> lore = getItemLore("gui.order-delivery.back-item");
+        if (lore.isEmpty()) {
+            lore = ColorUtils.colorize(Arrays.asList("&7Return to order list"));
+        }
+        return lore;
+    }
+    
+    public int getOrderDeliveryBackItemSlot() {
+        return getItemSlot("gui.order-delivery.back-item", 40);
     }
 }

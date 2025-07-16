@@ -1,6 +1,6 @@
-name: LeDatOrder
+name: PearlOrder
 version: '1.0'
-main: org.ledat.leDatOrder.LeDatOrder
+main: org.nexus.leDatOrder.LeDatOrder
 api-version: '1.20'
 authors: [ zonecluck ]
 website: facebook.com/zonecluck

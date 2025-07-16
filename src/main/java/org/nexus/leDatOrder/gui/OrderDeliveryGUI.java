@@ -140,12 +140,12 @@ public class OrderDeliveryGUI {
     }
 
     private static void showDeliveryAnimation(LeDatOrder plugin, Player player, double amount) {
-        // Hiển thị thẳng actionbar thông báo thành công
+        // Hiển thị thông báo thành công
         String successMessage = "&7Đã gửi đồ thành công và nhận được &6" + String.format("%.2f", amount);
         
-        // Sử dụng entity scheduler để gửi action bar đến player
+        // Sử dụng entity scheduler để gửi message đến player
         plugin.getFoliaLib().getScheduler().runAtEntity(player, (task) -> {
-            player.sendActionBar(ColorUtils.colorize(successMessage));
+            player.sendMessage(ColorUtils.colorize(successMessage));
         });
         
         // Mở lại GUI Order ngay lập tức

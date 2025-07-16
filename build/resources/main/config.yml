@@ -1,5 +1,54 @@
-# LeDatOrder Configuration
+# Messages Configuration
+messages:
+  # Order Creation Messages
+  order:
+    creation:
+      success: "&aOrder created successfully! (&e%current%&a/&e%max%&a)"
+      amount-invalid: "&cAmount must be greater than 0."
+      price-invalid: "&cPrice must be greater than 0."
+      limit-reached: "&cBạn đã đạt giới hạn số lượng order (&e%max%&c). Hãy hoàn thành hoặc hủy một số order hiện tại."
+      insufficient-money: "&cYou don't have enough money to create this order. You need %amount%"
+      insufficient-points: "&cYou don't have enough points to create this order. You need %amount% points"
+      payment-failed: "&cPayment failed! Please try again."
+      fee-charged-vault: "&aYou have been charged &e$%fee% &afor creating this order."
+      fee-charged-points: "&aYou have been charged &e%fee% Points &afor creating this order."
+      payment-success: "&aYou have paid &e%amount% &afor this order."
+  
+  # Currency Messages
+  currency:
+    vault-unavailable: "&cVault is not available!"
+    playerpoints-unavailable: "&cPlayerPoints is not available!"
+    no-system-available: "&cNo currency system is available!"
+    vault-unavailable-switch: "&cVault is not available! Using PlayerPoints instead."
+    playerpoints-unavailable-switch: "&cPlayerPoints is not available! Using Vault instead."
+    type-changed: "&aCurrency type changed to: &e%type%"
+  
+  # Input Messages
+  input:
+    amount-prompt: "&aPlease enter the amount in chat:"
+    price-prompt: "&aPlease enter the price per item in chat:"
+    search-prompt: "&aPlease enter search term in chat:"
+    amount-set: "&aAmount set to &e%amount%"
+    price-set: "&aPrice set to &e$%price%"
+    material-set: "&aMaterial set to &e%material%"
+    search-result: "&aKết quả tìm kiếm: &e%search%"
+    search-cleared: "&aSearch cleared"
+    invalid-number: "&cInvalid number format. Please enter a valid number."
+  
+  # Sort and Filter Messages
+  sort:
+    changed: "&aSắp xếp theo: &e%type%"
+  
+  filter:
+    changed: "&aLọc theo: &e%type%"
+  
+  # Delivery Messages
+  delivery:
+    self-delivery: "&cBạn không thể giao đồ cho chính mình!"
+    success: "&aSuccessfully delivered %amount% %material% to %player%'s order!"
+    payment-received: "&aYou received %amount% for delivering items!"
 
+# GUI Configuration
 gui:
   # Main Order GUI
   order:
@@ -67,7 +116,8 @@ gui:
       display-name: "&6%player%'s Order"
       lore:
         - "&a%amount% &f%material%"
-        - "&a$%price% per item"
+        - "&a%price% per item"
+        - "&7Currency: &e%currency%"
         - " "
         - "&e%received%/%required% &7Delivered"
         - "&e%paid%/%total% &7Paid"
@@ -92,10 +142,11 @@ gui:
       display-name: "&6Your Order: %material%"
       lore:
         - "&7Required: &a%required%"
-        - "&7Price per item: &a$%price%"
+        - "&7Price per item: &a%price%"
+        - "&7Currency: &e%currency%"
         - " "
         - "&7Delivered: &e%received%/%required%"
-        - "&7Paid: &e$%paid%/%total%"
+        - "&7Paid: &e%paid%/%total%"
       slot: 13
     
     cancel-item:
@@ -145,9 +196,20 @@ gui:
       material: SUNFLOWER
       display-name: "&6Set Price Per Item"
       lore:
-        - "&7Current: &a$%price%"
+        - "&7Current: &a%price%"
         - "&7Click to set price"
       slot: 14
+    
+    currency-item:
+      material: GOLD_INGOT
+      display-name: "&6Currency Type"
+      lore:
+        - "&7Current: &a%currency%"
+        - "&7Click to switch currency"
+        - ""
+        - "&7Vault Money: %vault_status%"
+        - "&7PlayerPoints: %points_status%"
+      slot: 22
     
     confirm-item:
       material: LIME_STAINED_GLASS_PANE
@@ -155,52 +217,78 @@ gui:
       lore:
         - "&7Material: &a%material%"
         - "&7Amount: &a%amount%"
-        - "&7Price per item: &a$%price%"
-        - "&7Total cost: &a$%total%"
+        - "&7Price per item: &a%price%"
+        - "&7Total cost: &a%total%"
+        - "&7Currency: &e%currency%"
       slot: 16
+  
+  # Material Select GUI
+  material-select:
+    title: "&6Select Material"
+    size: 54
     
-    # Material Select GUI
-    material-select:
-      title: "&6Select Material"
-      size: 54
+    item:
+      display-name: "&6%material%"
+      lore:
+        - "&7Click to select this material"
       
-      item:
-        display-name: "&6%material%"
-        lore:
-          - "&7Click to select this material"
-        
-      filter-item:
-        material: HOPPER
-        display-name: "&6Filter Materials"
-        slot: 47
-      
-      common-item:
-        material: CHEST
-        display-name: "&6Common Materials"
-        lore:
-          - "&7Show only common materials"
-        slot: 48
-      
-      back-item:
-        material: RED_STAINED_GLASS_PANE
-        display-name: "&cBack"
-        lore:
-          - "&7Return to Create Order"
-        slot: 49
-      
-      search-item:
-        material: OAK_SIGN
-        display-name: "&6Search Materials"
-        lore:
-          - "&7Click to search for materials"
-        slot: 50
-      
-      previous-page-item:
-        material: ARROW
-        display-name: "&6Previous Page"
-        slot: 45
-      
-      next-page-item:
-        material: ARROW
-        display-name: "&6Next Page"
-        slot: 53
+    filter-item:
+      material: HOPPER
+      display-name: "&6Filter Materials"
+      slot: 47
+    
+    common-item:
+      material: CHEST
+      display-name: "&6Common Materials"
+      lore:
+        - "&7Show only common materials"
+      slot: 48
+    
+    back-item:
+      material: RED_STAINED_GLASS_PANE
+      display-name: "&cBack"
+      lore:
+        - "&7Return to Create Order"
+      slot: 49
+    
+    search-item:
+      material: OAK_SIGN
+      display-name: "&6Search Materials"
+      lore:
+        - "&7Click to search for materials"
+      slot: 50
+    
+    previous-page-item:
+      material: ARROW
+      display-name: "&6Previous Page"
+      slot: 45
+    
+    next-page-item:
+      material: ARROW
+      display-name: "&6Next Page"
+      slot: 53
+  
+  # Order Delivery GUI
+  order-delivery:
+    title: "&6Order -> %player%"
+    size: 45
+    
+    order-info:
+      display-name: "&6%player%'s Order"
+      lore:
+        - "&7Required: &a%required% %material%"
+        - "&7Price per item: &a%price%"
+        - "&7Currency: &e%currency%"
+        - ""
+        - "&7Progress: &e%received%/%required%"
+        - "&7Remaining: &c%remaining%"
+        - ""
+        - "&7Put items in the inventory to deliver"
+      slot: 4
+    
+    back-item:
+      material: BARRIER
+      display-name: "&cBack to Orders"
+      lore:
+        - "&7Return to order list"
+      slot: 40

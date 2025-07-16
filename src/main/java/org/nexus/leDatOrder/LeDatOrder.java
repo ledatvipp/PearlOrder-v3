@@ -6,6 +6,7 @@ import org.nexus.leDatOrder.commands.OrderCommand;
 import org.nexus.leDatOrder.listeners.OrderListener;
 import org.nexus.leDatOrder.managers.ConfigManager;
 import org.nexus.leDatOrder.managers.OrderManager;
+import org.nexus.leDatOrder.managers.PlayerPointsManager;
 import org.nexus.leDatOrder.managers.VaultManager;
 
 public final class LeDatOrder extends JavaPlugin {
@@ -15,6 +16,7 @@ public final class LeDatOrder extends JavaPlugin {
     private ConfigManager configManager;
     private OrderManager orderManager;
     private VaultManager vaultManager;
+    private PlayerPointsManager playerPointsManager;
 
     @Override
     public void onEnable() {
@@ -25,6 +27,7 @@ public final class LeDatOrder extends JavaPlugin {
         configManager = new ConfigManager(this);
         orderManager = new OrderManager(this);
         vaultManager = new VaultManager(this);
+        playerPointsManager = new PlayerPointsManager(this);
 
         getCommand("order").setExecutor(new OrderCommand(this));
 
@@ -35,10 +38,6 @@ public final class LeDatOrder extends JavaPlugin {
 
     @Override
     public void onDisable() {
-        if (orderManager != null) {
-            orderManager.saveOrders();
-        }
-        
         getLogger().info("PearlOrder has been disabled!");
     }
 
@@ -57,8 +56,12 @@ public final class LeDatOrder extends JavaPlugin {
     public OrderManager getOrderManager() {
         return orderManager;
     }
-    
+
     public VaultManager getVaultManager() {
         return vaultManager;
+    }
+
+    public PlayerPointsManager getPlayerPointsManager() {
+        return playerPointsManager;
     }
 }

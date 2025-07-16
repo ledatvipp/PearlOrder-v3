@@ -7,6 +7,7 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.nexus.leDatOrder.LeDatOrder;
+import org.nexus.leDatOrder.enums.CurrencyType;
 import org.nexus.leDatOrder.models.Order;
 import org.nexus.leDatOrder.utils.ColorUtils;
 
@@ -93,7 +94,11 @@ public class CreateOrderGUI {
         if (priceMeta != null) {
             priceMeta.setDisplayName(ColorUtils.colorize("&6Set Price Per Item"));
             List<String> lore = new ArrayList<>();
-            lore.add(ColorUtils.colorize("&7Current: &a$" + String.format("%.2f", data.getPricePerItem())));
+            if (data.getCurrencyType() == CurrencyType.VAULT) {
+                lore.add(ColorUtils.colorize("&7Current: &a$" + String.format("%.2f", data.getPricePerItem())));
+            } else {
+                lore.add(ColorUtils.colorize("&7Current: &a" + (int)data.getPricePerItem() + " Points"));
+            }
             lore.add(ColorUtils.colorize("&7Click to set price"));
             priceMeta.setLore(lore);
             priceItem.setItemMeta(priceMeta);
@@ -108,12 +113,43 @@ public class CreateOrderGUI {
             List<String> lore = new ArrayList<>();
             lore.add(ColorUtils.colorize("&7Material: &a" + data.getMaterial().name()));
             lore.add(ColorUtils.colorize("&7Amount: &a" + data.getAmount()));
-            lore.add(ColorUtils.colorize("&7Price per item: &a$" + String.format("%.2f", data.getPricePerItem())));
-            lore.add(ColorUtils.colorize("&7Total cost: &a$" + String.format("%.2f", data.getAmount() * data.getPricePerItem())));
+            if (data.getCurrencyType() == CurrencyType.VAULT) {
+                lore.add(ColorUtils.colorize("&7Price per item: &a$" + String.format("%.2f", data.getPricePerItem())));
+                lore.add(ColorUtils.colorize("&7Total cost: &a$" + String.format("%.2f", data.getAmount() * data.getPricePerItem())));
+                lore.add(ColorUtils.colorize("&7Currency: &eVault Money"));
+            } else {
+                lore.add(ColorUtils.colorize("&7Price per item: &a" + (int)data.getPricePerItem() + " Points"));
+                lore.add(ColorUtils.colorize("&7Total cost: &a" + (int)(data.getAmount() * data.getPricePerItem()) + " Points"));
+                lore.add(ColorUtils.colorize("&7Currency: &ePlayerPoints"));
+            }
             confirmMeta.setLore(lore);
             confirmItem.setItemMeta(confirmMeta);
         }
         inventory.setItem(16, confirmItem);
+
+        // Nút chọn loại tiền (GOLD_INGOT) ở slot 22
+        ItemStack currencyItem = new ItemStack(data.getCurrencyType() == CurrencyType.VAULT ? Material.GOLD_INGOT : Material.EXPERIENCE_BOTTLE);
+        ItemMeta currencyMeta = currencyItem.getItemMeta();
+        if (currencyMeta != null) {
+            currencyMeta.setDisplayName(ColorUtils.colorize("&6Currency Type"));
+            List<String> lore = new ArrayList<>();
+            lore.add(ColorUtils.colorize("&7Current: &a" + (data.getCurrencyType() == CurrencyType.VAULT ? "Vault Money" : "PlayerPoints")));
+            lore.add(ColorUtils.colorize("&7Click to switch currency"));
+            lore.add("");
+            if (plugin.getVaultManager().isEnabled()) {
+                lore.add(ColorUtils.colorize("&a✓ &7Vault Money Available"));
+            } else {
+                lore.add(ColorUtils.colorize("&c✗ &7Vault Money Unavailable"));
+            }
+            if (plugin.getPlayerPointsManager().isEnabled()) {
+                lore.add(ColorUtils.colorize("&a✓ &7PlayerPoints Available"));
+            } else {
+                lore.add(ColorUtils.colorize("&c✗ &7PlayerPoints Unavailable"));
+            }
+            currencyMeta.setLore(lore);
+            currencyItem.setItemMeta(currencyMeta);
+        }
+        inventory.setItem(22, currencyItem);
     }
 
     public static CreateOrderData getCreateData(Player player) {
@@ -159,28 +195,68 @@ public class CreateOrderGUI {
 
         // Tính tổng chi phí để tạo order
         double fee = 0; // Có thể thêm phí tạo order nếu muốn
-        double totalCost = data.getAmount() * data.getPricePerItem();
-
-        // Kiểm tra xem người chơi có đủ tiền không
-        if (!plugin.getVaultManager().has(player, totalCost + fee)) {
-            player.sendMessage(ColorUtils.colorize("&cYou don't have enough money to create this order. You need $" + String.format("%.2f", totalCost + fee)));
+        
+        boolean paymentSuccess = false;
+        String currencyName = "";
+        
+        if (data.getCurrencyType() == CurrencyType.VAULT) {
+            // Sử dụng Vault
+            if (!plugin.getVaultManager().isEnabled()) {
+                player.sendMessage(ColorUtils.colorize("&cVault is not available!"));
+                return;
+            }
+            
+            double totalCost = data.getAmount() * data.getPricePerItem();
+            
+            if (!plugin.getVaultManager().has(player, totalCost + fee)) {
+                player.sendMessage(ColorUtils.colorize("&cYou don't have enough money to create this order. You need $" + String.format("%.2f", totalCost + fee)));
+                return;
+            }
+            
+            paymentSuccess = plugin.getVaultManager().withdraw(player, totalCost + fee);
+            currencyName = "$" + String.format("%.2f", totalCost);
+            
+        } else {
+            // Sử dụng PlayerPoints
+            if (!plugin.getPlayerPointsManager().isEnabled()) {
+                player.sendMessage(ColorUtils.colorize("&cPlayerPoints is not available!"));
+                return;
+            }
+            
+            int totalCost = (int)(data.getAmount() * data.getPricePerItem());
+            int totalFee = (int)fee;
+            
+            if (!plugin.getPlayerPointsManager().has(player, totalCost + totalFee)) {
+                player.sendMessage(ColorUtils.colorize("&cYou don't have enough points to create this order. You need " + (totalCost + totalFee) + " points"));
+                return;
+            }
+            
+            paymentSuccess = plugin.getPlayerPointsManager().withdraw(player, totalCost + totalFee);
+            currencyName = totalCost + " Points";
+        }
+        
+        if (!paymentSuccess) {
+            player.sendMessage(ColorUtils.colorize("&cPayment failed! Please try again."));
             return;
         }
 
-        // Trừ tiền
-        plugin.getVaultManager().withdraw(player, totalCost + fee);
         if (fee > 0) {
-            player.sendMessage(ColorUtils.colorize("&aYou have been charged &e$" + String.format("%.2f", fee) + " &afor creating this order."));
+            if (data.getCurrencyType() == CurrencyType.VAULT) {
+                player.sendMessage(ColorUtils.colorize("&aYou have been charged &e$" + String.format("%.2f", fee) + " &afor creating this order."));
+            } else {
+                player.sendMessage(ColorUtils.colorize("&aYou have been charged &e" + (int)fee + " Points &afor creating this order."));
+            }
         }
-        player.sendMessage(ColorUtils.colorize("&aYou have paid &e$" + String.format("%.2f", totalCost) + " &afor this order."));
+        player.sendMessage(ColorUtils.colorize("&aYou have paid &e" + currencyName + " &afor this order."));
 
-        // Tạo order mới
+        // Tạo order mới - SỬA DỤNG ENUM ĐÚNG
         Order order = new Order(
                 player.getUniqueId(),
                 player.getName(),
                 data.getMaterial(),
                 data.getPricePerItem(),
-                data.getAmount()
+                data.getAmount(),
+                data.getCurrencyType()  // Sử dụng CurrencyType từ enum riêng biệt
         );
 
         // Thêm vào danh sách order
@@ -200,6 +276,7 @@ public class CreateOrderGUI {
         private Material material = Material.STONE;
         private int amount = 1;
         private double pricePerItem = 1.0;
+        private CurrencyType currencyType = CurrencyType.VAULT;
 
         public Material getMaterial() {
             return material;
@@ -223,6 +300,18 @@ public class CreateOrderGUI {
 
         public void setPricePerItem(double pricePerItem) {
             this.pricePerItem = pricePerItem;
+        }
+
+        public CurrencyType getCurrencyType() {
+            return currencyType;
+        }
+
+        public void setCurrencyType(CurrencyType currencyType) {
+            this.currencyType = currencyType;
+        }
+        
+        public void toggleCurrencyType() {
+            this.currencyType = (this.currencyType == CurrencyType.VAULT) ? CurrencyType.PLAYERPOINTS : CurrencyType.VAULT;
         }
     }
 }
