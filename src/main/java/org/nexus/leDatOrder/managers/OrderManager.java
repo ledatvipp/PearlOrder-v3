@@ -26,6 +26,8 @@ public class OrderManager {
         this.ordersFile = new File(plugin.getDataFolder(), "orders.yml");
         this.orders = new HashMap<>();
         loadOrders();
+        // Dọn dẹp đơn hàng đã hoàn thành khi khởi động
+        cleanupCompletedOrders();
     }
 
     public void loadOrders() {
@@ -177,7 +179,81 @@ public class OrderManager {
             });
         }
         
+        checkAndRemoveCompletedOrder(order);
+        
         saveOrders();
+    }
+
+    public void checkAndRemoveCompletedOrder(Order order) {
+        if (order.getReceivedAmount() >= order.getRequiredAmount()) {
+            // Đơn hàng đã đủ số lượng, xóa khỏi hệ thống
+            removeOrder(order.getId());
+            
+            Player orderOwner = plugin.getServer().getPlayer(order.getPlayerUUID());
+            if (orderOwner != null && orderOwner.isOnline()) {
+                plugin.getFoliaLib().getScheduler().runAtEntity(orderOwner, (task) -> {
+                    orderOwner.sendMessage(ColorUtils.colorize("&aĐơn hàng " + order.getMaterial().name() + " đã nhận đủ số lượng và được xóa khỏi hệ thống!"));
+                });
+            }
+        }
+    }
+
+    public void cleanupCompletedOrders() {
+        List<UUID> completedOrderIds = new ArrayList<>();
+        
+        for (Order order : orders.values()) {
+            if (order.getReceivedAmount() >= order.getRequiredAmount()) {
+                completedOrderIds.add(order.getId());
+            }
+        }
+        
+        for (UUID orderId : completedOrderIds) {
+            orders.remove(orderId);
+        }
+        
+        if (!completedOrderIds.isEmpty()) {
+            saveOrders();
+            plugin.getLogger().info("Đã dọn dẹp " + completedOrderIds.size() + " đơn hàng đã hoàn thành.");
+        }
+    }
+
+    public List<Order> getActiveOrders() {
+        return orders.values().stream()
+                .filter(order -> order.getReceivedAmount() < order.getRequiredAmount())
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Lấy danh sách đơn hàng chưa hoàn thành theo loại
+     */
+    public List<Order> getActiveOrdersByType(OrderType type) {
+        if (type == OrderType.ALL) {
+            return getActiveOrders();
+        }
+        return getActiveOrders().stream()
+                .filter(order -> order.getType() == type)
+                .collect(Collectors.toList());
+    }
+
+    public List<Order> getSortedActiveOrders(SortType sortType, OrderType filterType) {
+        List<Order> filteredOrders = getActiveOrdersByType(filterType);
+
+        switch (sortType) {
+            case MOST_PAID:
+                filteredOrders.sort(Comparator.comparing(Order::getPaidAmount).reversed());
+                break;
+            case MOST_DELIVERED:
+                filteredOrders.sort(Comparator.comparing(Order::getReceivedAmount).reversed());
+                break;
+            case RECENTLY_LISTED:
+                filteredOrders.sort(Comparator.comparing(Order::getCreatedAt).reversed());
+                break;
+            case MOST_MONEY_PER_ITEM:
+                filteredOrders.sort(Comparator.comparing(Order::getPricePerItem).reversed());
+                break;
+        }
+
+        return filteredOrders;
     }
 
     public void payOrder(Player player, Order order, double amount) {

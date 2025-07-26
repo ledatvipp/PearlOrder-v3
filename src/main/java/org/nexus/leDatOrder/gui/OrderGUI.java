@@ -43,8 +43,8 @@ public class OrderGUI {
     private void updateInventory() {
         inventory.clear();
 
-        // Lấy danh sách order đã sắp xếp và lọc
-        List<Order> filteredOrders = plugin.getOrderManager().getSortedOrders(currentSortType, currentFilterType);
+        // Lấy danh sách order đã sắp xếp và lọc (chỉ những đơn chưa hoàn thành)
+        List<Order> filteredOrders = plugin.getOrderManager().getSortedActiveOrders(currentSortType, currentFilterType);
 
         // Tính toán phân trang
         int totalPages = (int) Math.ceil(filteredOrders.size() / 45.0);
@@ -190,7 +190,7 @@ public class OrderGUI {
     }
 
     public void nextPage() {
-        List<Order> filteredOrders = plugin.getOrderManager().getSortedOrders(currentSortType, currentFilterType);
+        List<Order> filteredOrders = plugin.getOrderManager().getSortedActiveOrders(currentSortType, currentFilterType);
         int totalPages = (int) Math.ceil(filteredOrders.size() / 45.0);
         if (currentPage < totalPages - 1) {
             currentPage++;
