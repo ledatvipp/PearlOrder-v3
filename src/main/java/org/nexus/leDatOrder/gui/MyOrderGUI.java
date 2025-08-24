@@ -38,7 +38,7 @@ public class MyOrderGUI {
     private void updateInventory() {
         inventory.clear();
 
-        // Lấy danh sách order của người chơi và lọc ra những order chưa hoàn thành
+        // Lấy danh sách order của người chơi và lọc ra những order chưa hoàn thành hoặc còn items để collect
         List<Order> playerOrders = plugin.getOrderManager().getOrdersByPlayer(player.getUniqueId())
                 .stream()
                 .filter(order -> !order.isCompleted() || order.getCollectedAmount() < order.getReceivedAmount())
@@ -79,24 +79,62 @@ public class MyOrderGUI {
     private ItemStack createMyOrderItem(Order order) {
         ItemStack item = new ItemStack(order.getMaterial());
         ItemMeta meta = item.getItemMeta();
-        
+
         if (meta != null) {
             // Set display name
             String displayName = ColorUtils.colorize("&6" + player.getName() + "'s Order");
             meta.setDisplayName(displayName);
-            
+
             // Set lore
             List<String> lore = new ArrayList<>();
             lore.add(ColorUtils.colorize("&a" + order.getRequiredAmount() + " &f" + order.getMaterial().name()));
-            lore.add(ColorUtils.colorize("&a$" + String.format("%.2f", order.getPricePerItem()) + " per item"));
+
+            // Hiển thị giá theo loại tiền tệ
+            if (order.getCurrencyType() == org.nexus.leDatOrder.enums.CurrencyType.VAULT) {
+                lore.add(ColorUtils.colorize("&a$" + String.format("%.2f", order.getPricePerItem()) + " per item"));
+            } else {
+                lore.add(ColorUtils.colorize("&a" + (int)order.getPricePerItem() + " Points per item"));
+            }
+
+            lore.add(ColorUtils.colorize("&7Currency: &e" + (order.getCurrencyType() == org.nexus.leDatOrder.enums.CurrencyType.VAULT ? "Vault" : "Points")));
             lore.add(" ");
-            lore.add(ColorUtils.colorize("&e" + order.getReceivedAmount() + "/" + order.getRequiredAmount() + " &7Delivered"));
-            lore.add(ColorUtils.colorize("&e" + String.format("%.2f", order.getPaidAmount()) + "/" + 
-                    String.format("%.2f", order.getRequiredAmount() * order.getPricePerItem()) + " &7Paid"));
+            lore.add(ColorUtils.colorize("&eDelivered: &a" + order.getReceivedAmount() + "&7/&a" + order.getRequiredAmount()));
+            lore.add(ColorUtils.colorize("&eCollected: &a" + order.getCollectedAmount() + "&7/&a" + order.getReceivedAmount()));
+
+            // Hiển thị items có thể collect
+            int availableToCollect = order.getReceivedAmount() - order.getCollectedAmount();
+            if (availableToCollect > 0) {
+                lore.add(ColorUtils.colorize("&aAvailable to collect: &e" + availableToCollect));
+            }
+
+            lore.add(" ");
+
+            // Hiển thị thông tin thanh toán
+            double totalCost = order.getRequiredAmount() * order.getPricePerItem();
+            if (order.getCurrencyType() == org.nexus.leDatOrder.enums.CurrencyType.VAULT) {
+                lore.add(ColorUtils.colorize("&ePaid: &a$" + String.format("%.2f", order.getPaidAmount()) + "&7/&a$" + String.format("%.2f", totalCost)));
+            } else {
+                lore.add(ColorUtils.colorize("&ePaid: &a" + (int)order.getPaidAmount() + "&7/&a" + (int)totalCost + " Points"));
+            }
+
+            // Status
+            if (order.isCompleted()) {
+                if (availableToCollect > 0) {
+                    lore.add(ColorUtils.colorize("&aStatus: &eReady to collect"));
+                } else {
+                    lore.add(ColorUtils.colorize("&aStatus: &2Completed"));
+                }
+            } else {
+                lore.add(ColorUtils.colorize("&aStatus: &6Waiting for delivery"));
+            }
+
+            lore.add(" ");
+            lore.add(ColorUtils.colorize("&7Click to manage this order"));
+
             meta.setLore(lore);
             item.setItemMeta(meta);
         }
-        
+
         return item;
     }
 }

@@ -55,7 +55,17 @@ public class OrderManager {
                     double pricePerItem = orderSection.getDouble("pricePerItem");
                     int requiredAmount = orderSection.getInt("requiredAmount");
 
-                    Order order = new Order(playerUUID, playerName, material, pricePerItem, requiredAmount);
+                    // Đọc CurrencyType nếu có, mặc định là VAULT
+                    org.nexus.leDatOrder.enums.CurrencyType currencyType = org.nexus.leDatOrder.enums.CurrencyType.VAULT;
+                    if (orderSection.contains("currencyType")) {
+                        try {
+                            currencyType = org.nexus.leDatOrder.enums.CurrencyType.valueOf(orderSection.getString("currencyType"));
+                        } catch (IllegalArgumentException e) {
+                            plugin.getLogger().warning("Invalid currency type in order " + key + ", defaulting to VAULT");
+                        }
+                    }
+
+                    Order order = new Order(playerUUID, playerName, material, pricePerItem, requiredAmount, currencyType);
                     // Set additional properties
                     order.addReceivedAmount(orderSection.getInt("receivedAmount"));
                     order.addPaidAmount(orderSection.getDouble("paidAmount"));
@@ -64,7 +74,7 @@ public class OrderManager {
                     if (orderSection.contains("collectedAmount")) {
                         order.addCollectedAmount(orderSection.getInt("collectedAmount"));
                     }
-                    
+
                     orders.put(id, order);
                 }
             }
@@ -77,7 +87,7 @@ public class OrderManager {
         for (Map.Entry<UUID, Order> entry : orders.entrySet()) {
             Order order = entry.getValue();
             String path = "orders." + order.getId().toString();
-        
+
             config.set(path + ".playerUUID", order.getPlayerUUID().toString());
             config.set(path + ".playerName", order.getPlayerName());
             config.set(path + ".material", order.getMaterial().toString());
@@ -87,7 +97,8 @@ public class OrderManager {
             config.set(path + ".paidAmount", order.getPaidAmount());
             config.set(path + ".totalPaid", order.getTotalPaid());
             config.set(path + ".createdAt", order.getCreatedAt().getTime());
-            config.set(path + ".collectedAmount", order.getCollectedAmount()); // Lưu collectedAmount
+            config.set(path + ".collectedAmount", order.getCollectedAmount());
+            config.set(path + ".currencyType", order.getCurrencyType().name()); // Lưu CurrencyType
         }
 
         try {
@@ -107,7 +118,7 @@ public class OrderManager {
 
         FileConfiguration config = YamlConfiguration.loadConfiguration(ordersFile);
         config.set("orders." + orderId.toString(), null);
-        
+
         try {
             config.save(ordersFile);
             plugin.getLogger().info("Đã xóa đơn hàng " + orderId + " khỏi hệ thống và file orders.yml");
@@ -162,37 +173,50 @@ public class OrderManager {
         return filteredOrders;
     }
 
-    public void deliverItems(Player player, Order order, int amount) {
+    public void deliverItems(Player deliveryPlayer, Order order, int amount) {
+        // Cập nhật số lượng đã nhận
         order.addReceivedAmount(amount);
 
+        // Tính toán số tiền phải trả
         double paymentAmount = order.getPricePerItem() * amount;
         order.addPaidAmount(paymentAmount);
 
+        // Thông báo cho người tạo order (nếu đang online)
         Player orderOwner = plugin.getServer().getPlayer(order.getPlayerUUID());
         if (orderOwner != null && orderOwner.isOnline()) {
-            String message = "&a" + player.getName() + " đã giao &e" + amount + " &a" + 
-                    order.getMaterial().name() + " cho đơn hàng của bạn và bạn đã trả &e$" + 
-                    String.format("%.2f", paymentAmount);
-            
+            String message = "&a" + deliveryPlayer.getName() + " đã giao &e" + amount + " &a" +
+                    order.getMaterial().name() + " cho đơn hàng của bạn và bạn đã trả &e";
+
+            if (order.getCurrencyType() == org.nexus.leDatOrder.enums.CurrencyType.VAULT) {
+                message += "$" + String.format("%.2f", paymentAmount);
+            } else {
+                message += (int)paymentAmount + " Points";
+            }
+
+            final String finalMessage = message;
+            final Player finalOrderOwner = orderOwner;
             plugin.getFoliaLib().getScheduler().runAtEntity(orderOwner, (task) -> {
-                orderOwner.sendMessage(ColorUtils.colorize(message));
+                finalOrderOwner.sendMessage(ColorUtils.colorize(finalMessage));
             });
         }
-        
-        checkAndRemoveCompletedOrder(order);
-        
+
+        // Không tự động xóa order ở đây nữa, để người tạo order có thể collect items
         saveOrders();
     }
 
     public void checkAndRemoveCompletedOrder(Order order) {
-        if (order.getReceivedAmount() >= order.getRequiredAmount()) {
-            // Đơn hàng đã đủ số lượng, xóa khỏi hệ thống
+        // Chỉ xóa order khi đã nhận đủ items VÀ đã collect hết
+        if (order.getReceivedAmount() >= order.getRequiredAmount() &&
+                order.getCollectedAmount() >= order.getReceivedAmount()) {
+
             removeOrder(order.getId());
-            
+
             Player orderOwner = plugin.getServer().getPlayer(order.getPlayerUUID());
             if (orderOwner != null && orderOwner.isOnline()) {
+                final String completionMessage = "&aĐơn hàng " + order.getMaterial().name() + " đã hoàn thành và được xóa khỏi hệ thống!";
+                final Player finalOrderOwner = orderOwner;
                 plugin.getFoliaLib().getScheduler().runAtEntity(orderOwner, (task) -> {
-                    orderOwner.sendMessage(ColorUtils.colorize("&aĐơn hàng " + order.getMaterial().name() + " đã nhận đủ số lượng và được xóa khỏi hệ thống!"));
+                    finalOrderOwner.sendMessage(ColorUtils.colorize(completionMessage));
                 });
             }
         }
@@ -200,17 +224,19 @@ public class OrderManager {
 
     public void cleanupCompletedOrders() {
         List<UUID> completedOrderIds = new ArrayList<>();
-        
+
+        // Chỉ xóa những order đã hoàn thành và đã collect hết items
         for (Order order : orders.values()) {
-            if (order.getReceivedAmount() >= order.getRequiredAmount()) {
+            if (order.getReceivedAmount() >= order.getRequiredAmount() &&
+                    order.getCollectedAmount() >= order.getReceivedAmount()) {
                 completedOrderIds.add(order.getId());
             }
         }
-        
+
         for (UUID orderId : completedOrderIds) {
             orders.remove(orderId);
         }
-        
+
         if (!completedOrderIds.isEmpty()) {
             saveOrders();
             plugin.getLogger().info("Đã dọn dẹp " + completedOrderIds.size() + " đơn hàng đã hoàn thành.");

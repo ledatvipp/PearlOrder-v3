@@ -52,51 +52,51 @@ public class OrderListener implements Listener {
 
             OrderGUI gui = new OrderGUI(plugin, player);
 
+            // Thay thế phần xử lý Sort và Filter trong method onInventoryClick của OrderListener.java
+
             if (slot == plugin.getConfigManager().getSortItemSlot()) {
-                SortType currentType = null;
+                // Xử lý nút Sort - SỬA LẠI LOGIC
+                SortType[] allSortTypes = SortType.values();
+                SortType currentSortType = gui.getCurrentSortType();
 
-                boolean foundCurrent = false;
-                for (SortType type : SortType.values()) {
-                    if (foundCurrent) {
-                        currentType = type;
+                // Tìm index hiện tại
+                int currentIndex = -1;
+                for (int i = 0; i < allSortTypes.length; i++) {
+                    if (allSortTypes[i] == currentSortType) {
+                        currentIndex = i;
                         break;
                     }
-                    if (type == gui.getCurrentSortType()) {
-                        foundCurrent = true;
-                    }
                 }
 
-                if (currentType == null) {
-                    currentType = SortType.values()[0];
-                }
-                
-                gui.setCurrentSortType(currentType);
+                // Chuyển sang sort type tiếp theo (quay lại đầu nếu đã ở cuối)
+                int nextIndex = (currentIndex + 1) % allSortTypes.length;
+                SortType nextSortType = allSortTypes[nextIndex];
+
+                gui.setCurrentSortType(nextSortType);
                 gui.open();
-                player.sendMessage(ColorUtils.colorize("&aSắp xếp theo: &e" + currentType.getDisplayName()));
+                player.sendMessage(ColorUtils.colorize("&aSắp xếp theo: &e" + nextSortType.getDisplayName()));
+
             } else if (slot == plugin.getConfigManager().getFilterItemSlot()) {
-                // Xử lý nút Filter
-                OrderType currentType = null;
-                
-                // Tìm loại lọc tiếp theo
-                boolean foundCurrent = false;
-                for (OrderType type : OrderType.values()) {
-                    if (foundCurrent) {
-                        currentType = type;
+                // Xử lý nút Filter - SỬA LẠI LOGIC
+                OrderType[] allFilterTypes = OrderType.values();
+                OrderType currentFilterType = gui.getCurrentFilterType();
+
+                // Tìm index hiện tại
+                int currentIndex = -1;
+                for (int i = 0; i < allFilterTypes.length; i++) {
+                    if (allFilterTypes[i] == currentFilterType) {
+                        currentIndex = i;
                         break;
                     }
-                    if (type == gui.getCurrentFilterType()) {
-                        foundCurrent = true;
-                    }
                 }
-                
-                // Nếu đã ở loại cuối cùng, quay lại loại đầu tiên
-                if (currentType == null) {
-                    currentType = OrderType.values()[0];
-                }
-                
-                gui.setCurrentFilterType(currentType);
+
+                // Chuyển sang filter type tiếp theo (quay lại đầu nếu đã ở cuối)
+                int nextIndex = (currentIndex + 1) % allFilterTypes.length;
+                OrderType nextFilterType = allFilterTypes[nextIndex];
+
+                gui.setCurrentFilterType(nextFilterType);
                 gui.open();
-                player.sendMessage(ColorUtils.colorize("&aLọc theo: &e" + currentType.getDisplayName()));
+                player.sendMessage(ColorUtils.colorize("&aLọc theo: &e" + nextFilterType.getDisplayName()));
             } else if (slot == plugin.getConfigManager().getRefreshItemSlot()) {
                 gui.open();
             } else if (slot == plugin.getConfigManager().getSearchItemSlot()) {
