@@ -1,6 +1,7 @@
 package org.nexus.leDatOrder.listeners;
 
 import org.bukkit.Material;
+import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -9,7 +10,12 @@ import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.inventory.ItemStack;
 import org.nexus.leDatOrder.LeDatOrder;
-import org.nexus.leDatOrder.gui.*;
+import org.nexus.leDatOrder.gui.CreateOrderGUI;
+import org.nexus.leDatOrder.gui.MaterialSelectGUI;
+import org.nexus.leDatOrder.gui.MyOrderGUI;
+import org.nexus.leDatOrder.gui.OrderDeliveryGUI;
+import org.nexus.leDatOrder.gui.OrderGUI;
+import org.nexus.leDatOrder.gui.OrderManageGUI;
 import org.nexus.leDatOrder.models.Order;
 import org.nexus.leDatOrder.models.OrderType;
 import org.nexus.leDatOrder.models.SortType;
@@ -29,7 +35,7 @@ public class OrderListener implements Listener {
         PRICE,
         MATERIAL_SEARCH
     }
-    
+
     public OrderListener(LeDatOrder plugin) {
         this.plugin = plugin;
     }
@@ -37,83 +43,85 @@ public class OrderListener implements Listener {
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
         if (!(event.getWhoClicked() instanceof Player)) return;
-        
+
         Player player = (Player) event.getWhoClicked();
         String title = event.getView().getTitle();
+        String strippedTitle = stripColor(title);
 
-        String orderGuiTitleBase = plugin.getConfigManager().getOrderGuiTitle().split("\\(Page")[0].trim();
-        if (title.startsWith(ColorUtils.colorize(orderGuiTitleBase))) {
+        // Lấy tiêu đề từ config (đã strip màu)
+        String orderTitleTemplate = plugin.getConfigManager().getOrderGuiTitle();
+        String orderPrefix = stripColor(orderTitleTemplate).split("\\(")[0].trim();
+
+        String myOrderTitle = stripColor(plugin.getConfigManager().getMyOrderGuiTitle());
+        String manageOrderTitle = stripColor(plugin.getConfigManager().getOrderManageGuiTitle());
+        String createOrderTitle = stripColor(plugin.getConfigManager().getCreateOrderGuiTitle());
+        String materialSelectTitle = stripColor(plugin.getConfigManager().getMaterialSelectGuiTitle());
+        String orderDeliveryPrefix = stripColor(plugin.getConfigManager().getOrderDeliveryGuiTitle())
+                .replace("%player%", "").trim();
+
+        // ==== ORDER LIST (có phân trang) ====
+        if (strippedTitle.startsWith(orderPrefix)) {
             event.setCancelled(true);
-            
+
             int slot = event.getRawSlot();
             ItemStack clickedItem = event.getCurrentItem();
-            
             if (clickedItem == null) return;
 
             OrderGUI gui = new OrderGUI(plugin, player);
 
-            // Thay thế phần xử lý Sort và Filter trong method onInventoryClick của OrderListener.java
-
             if (slot == plugin.getConfigManager().getSortItemSlot()) {
-                // Xử lý nút Sort - SỬA LẠI LOGIC
-                SortType[] allSortTypes = SortType.values();
-                SortType currentSortType = gui.getCurrentSortType();
-
-                // Tìm index hiện tại
-                int currentIndex = -1;
-                for (int i = 0; i < allSortTypes.length; i++) {
-                    if (allSortTypes[i] == currentSortType) {
-                        currentIndex = i;
-                        break;
-                    }
-                }
-
-                // Chuyển sang sort type tiếp theo (quay lại đầu nếu đã ở cuối)
-                int nextIndex = (currentIndex + 1) % allSortTypes.length;
-                SortType nextSortType = allSortTypes[nextIndex];
-
-                gui.setCurrentSortType(nextSortType);
+                SortType[] all = SortType.values();
+                SortType cur = gui.getCurrentSortType();
+                int idx = 0;
+                for (int i = 0; i < all.length; i++) if (all[i] == cur) { idx = i; break; }
+                gui.setCurrentSortType(all[(idx + 1) % all.length]);
                 gui.open();
-                player.sendMessage(ColorUtils.colorize("&aSắp xếp theo: &e" + nextSortType.getDisplayName()));
+                player.sendMessage(ColorUtils.colorize("&aSắp xếp theo: &e" + gui.getCurrentSortType().getDisplayName()));
 
             } else if (slot == plugin.getConfigManager().getFilterItemSlot()) {
-                // Xử lý nút Filter - SỬA LẠI LOGIC
-                OrderType[] allFilterTypes = OrderType.values();
-                OrderType currentFilterType = gui.getCurrentFilterType();
-
-                // Tìm index hiện tại
-                int currentIndex = -1;
-                for (int i = 0; i < allFilterTypes.length; i++) {
-                    if (allFilterTypes[i] == currentFilterType) {
-                        currentIndex = i;
-                        break;
-                    }
-                }
-
-                // Chuyển sang filter type tiếp theo (quay lại đầu nếu đã ở cuối)
-                int nextIndex = (currentIndex + 1) % allFilterTypes.length;
-                OrderType nextFilterType = allFilterTypes[nextIndex];
-
-                gui.setCurrentFilterType(nextFilterType);
+                OrderType[] all = OrderType.values();
+                OrderType cur = gui.getCurrentFilterType();
+                int idx = 0;
+                for (int i = 0; i < all.length; i++) if (all[i] == cur) { idx = i; break; }
+                gui.setCurrentFilterType(all[(idx + 1) % all.length]);
                 gui.open();
-                player.sendMessage(ColorUtils.colorize("&aLọc theo: &e" + nextFilterType.getDisplayName()));
+                player.sendMessage(ColorUtils.colorize("&aLọc theo: &e" + gui.getCurrentFilterType().getDisplayName()));
+
             } else if (slot == plugin.getConfigManager().getRefreshItemSlot()) {
                 gui.open();
+
             } else if (slot == plugin.getConfigManager().getSearchItemSlot()) {
                 new MaterialSelectGUI(plugin, player).open();
+
             } else if (slot == plugin.getConfigManager().getCreateItemSlot()) {
                 new MyOrderGUI(plugin, player).open();
+
             } else if (slot == plugin.getConfigManager().getPreviousPageItemSlot()) {
                 gui.previousPage();
                 gui.open();
+
             } else if (slot == plugin.getConfigManager().getNextPageItemSlot()) {
                 gui.nextPage();
                 gui.open();
+
             } else if (slot < 45) {
                 handleOrderClick(player, slot, gui);
             }
-        } else if (title.startsWith(ColorUtils.colorize("&6Order -> "))) {
-            if (event.getCurrentItem() != null && event.getCurrentItem().getType() == Material.BARRIER) {
+            return;
+        }
+
+        // ==== ORDER DELIVERY (cho phép thao tác) ====
+        if (strippedTitle.startsWith(orderDeliveryPrefix)) {
+            // Nút “Quay lại”
+            ItemStack current = event.getCurrentItem();
+            int backSlotDefault = 40; // 45-slot GUI => slot 40
+            int backSlot = backSlotDefault;
+            Material backMat = Material.BARRIER;
+            try {
+                backMat = plugin.getConfigManager().getItemMaterial("gui.order-delivery.back-item", Material.BARRIER);
+                // Nếu bạn có getter slot tổng quát, thay bằng: backSlot = plugin.getConfigManager().getItemSlot("gui.order-delivery.back-item", 40);
+            } catch (Exception ignored) {}
+            if (current != null && current.getType() == backMat && event.getRawSlot() == backSlot) {
                 event.setCancelled(true);
                 player.closeInventory();
                 OrderDeliveryGUI.removePlayer(player);
@@ -121,264 +129,309 @@ public class OrderListener implements Listener {
                 return;
             }
             event.setCancelled(false);
-        } else if (title.equals(ColorUtils.colorize("&6Your Orders"))) {
+            return;
+        }
+
+        // ==== MY ORDERS ====
+        if (strippedTitle.equalsIgnoreCase(myOrderTitle)) {
             event.setCancelled(true);
-            
             int slot = event.getRawSlot();
-            ItemStack clickedItem = event.getCurrentItem();
-            
-            if (clickedItem == null) return;
-            
+            ItemStack clicked = event.getCurrentItem();
+            if (clicked == null) return;
+
             if (slot < 27) {
-                // Click vào order của người chơi
-                List<Order> playerOrders = plugin.getOrderManager().getOrdersByPlayer(player.getUniqueId());
-                if (slot < playerOrders.size()) {
-                    Order order = playerOrders.get(slot);
-                    new OrderManageGUI(plugin, player, order).open();
+                List<Order> list = plugin.getOrderManager().getOrdersByPlayer(player.getUniqueId());
+                if (slot < list.size()) {
+                    new OrderManageGUI(plugin, player, list.get(slot)).open();
                 }
-            } else if (slot == 31 && clickedItem.getType() == Material.MAP) {
-                new CreateOrderGUI(plugin, player).open();
+            } else {
+                int createSlot = 31; // mặc định
+                Material createMat = plugin.getConfigManager().getItemMaterial("gui.my-order.create-item", Material.MAP);
+                if (slot == createSlot && clicked.getType() == createMat) {
+                    new CreateOrderGUI(plugin, player).open();
+                }
             }
-        } else if (title.equals(ColorUtils.colorize("&6Manage Order"))) {
+            return;
+        }
+
+        // ==== MANAGE ORDER ====
+        if (strippedTitle.equalsIgnoreCase(manageOrderTitle)) {
             event.setCancelled(true);
-            
             int slot = event.getRawSlot();
-            ItemStack clickedItem = event.getCurrentItem();
-            
-            if (clickedItem == null) return;
-            
-            if (slot == 12 && clickedItem.getType() == Material.BARRIER) {
-                // Hủy bỏ order
+            ItemStack clicked = event.getCurrentItem();
+            if (clicked == null) return;
+
+            int cancelSlot = 12;
+            Material cancelMat = plugin.getConfigManager().getItemMaterial("gui.order-manage.cancel-item", Material.BARRIER);
+            if (slot == cancelSlot && clicked.getType() == cancelMat) {
                 OrderManageGUI.cancelOrder(plugin, player);
-            } else if (slot == 14 && clickedItem.getType() == Material.CHEST) {
-                // Thu thập items
+                return;
+            }
+
+            int collectSlot = 14;
+            Material collectMat = plugin.getConfigManager().getItemMaterial("gui.order-manage.collect-item", Material.CHEST);
+            if (slot == collectSlot && clicked.getType() == collectMat) {
                 OrderManageGUI.collectItems(plugin, player);
             }
-        } else if (title.equals(ColorUtils.colorize("&6Create Order"))) {
+            return;
+        }
+
+        // ==== CREATE ORDER ====
+        if (strippedTitle.equalsIgnoreCase(createOrderTitle)) {
             event.setCancelled(true);
-            
             int slot = event.getRawSlot();
-            ItemStack clickedItem = event.getCurrentItem();
-            
-            if (clickedItem == null) return;
-            
-            if (slot == 10 && clickedItem.getType() == Material.RED_STAINED_GLASS_PANE) {
+            ItemStack clicked = event.getCurrentItem();
+            if (clicked == null) return;
+
+            int backSlot = 10;
+            Material backMat = plugin.getConfigManager().getItemMaterial("gui.create-order.back-item", Material.RED_STAINED_GLASS_PANE);
+            if (slot == backSlot && clicked.getType() == backMat) {
                 new MyOrderGUI(plugin, player).open();
-            } else if (slot == 12) {
-                // Chọn material
+                return;
+            }
+
+            int materialSlot = 12;
+            if (slot == materialSlot && clicked.getType() == plugin.getConfigManager().getItemMaterial("gui.create-order.material-item", Material.STONE)) {
                 new MaterialSelectGUI(plugin, player).open();
-            } else if (slot == 13 && clickedItem.getType() == Material.CHEST) {
-                // Nhập số lượng
+                return;
+            }
+
+            int amountSlot = 13;
+            if (slot == amountSlot && clicked.getType() == plugin.getConfigManager().getItemMaterial("gui.create-order.amount-item", Material.CHEST)) {
                 player.closeInventory();
                 player.sendMessage(plugin.getConfigManager().getMessage("input.amount-prompt"));
                 awaitingChatInput.put(player.getUniqueId(), ChatInputType.AMOUNT);
-            } else if (slot == 14 && clickedItem.getType() == Material.SUNFLOWER) {
-                // Nhập giá tiền
+                return;
+            }
+
+            int priceSlot = 14;
+            if (slot == priceSlot && clicked.getType() == plugin.getConfigManager().getItemMaterial("gui.create-order.price-item", Material.SUNFLOWER)) {
                 player.closeInventory();
                 player.sendMessage(plugin.getConfigManager().getMessage("input.price-prompt"));
                 awaitingChatInput.put(player.getUniqueId(), ChatInputType.PRICE);
-            } else if (slot == 16 && clickedItem.getType() == Material.LIME_STAINED_GLASS_PANE) {
-                // Xác nhận tạo order
+                return;
+            }
+
+            int confirmSlot = 16;
+            if (slot == confirmSlot && clicked.getType() == plugin.getConfigManager().getItemMaterial("gui.create-order.confirm-item", Material.LIME_STAINED_GLASS_PANE)) {
                 CreateOrderGUI.createOrder(plugin, player);
-            } else if (slot == 22) {
-                // Chuyển đổi loại tiền tệ
+                return;
+            }
+
+            // Toggle tiền tệ
+            int currencySlot = plugin.getConfigManager().getCreateOrderCurrencyItemSlot();
+            Material currencyMat = plugin.getConfigManager().getCreateOrderCurrencyItemMaterial();
+            if (slot == currencySlot && clicked.getType() == currencyMat) {
                 CreateOrderGUI.CreateOrderData data = CreateOrderGUI.getCreateData(player);
                 if (data != null) {
-                    // Kiểm tra xem cả hai loại tiền tệ có khả dụng không
-                    boolean vaultAvailable = plugin.getVaultManager().isEnabled();
-                    boolean playerPointsAvailable = plugin.getPlayerPointsManager().isEnabled();
-                    
-                    if (!vaultAvailable && !playerPointsAvailable) {
+                    boolean vaultOK = plugin.getVaultManager().isEnabled();
+                    boolean ppOK = plugin.getPlayerPointsManager().isEnabled();
+                    if (!vaultOK && !ppOK) {
                         player.sendMessage(plugin.getConfigManager().getMessage("currency.no-system-available"));
                         return;
                     }
-                    
-                    // Chuyển đổi loại tiền tệ
                     data.toggleCurrencyType();
-                    
-                    // Kiểm tra xem loại tiền tệ mới có khả dụng không
-                    if (data.getCurrencyType() == org.nexus.leDatOrder.enums.CurrencyType.VAULT && !vaultAvailable) {
-                        data.toggleCurrencyType(); // Chuyển lại nếu Vault không khả dụng
+                    if (data.getCurrencyType() == org.nexus.leDatOrder.enums.CurrencyType.VAULT && !vaultOK) {
+                        data.toggleCurrencyType();
                         player.sendMessage(plugin.getConfigManager().getMessage("currency.vault-unavailable-switch"));
-                    } else if (data.getCurrencyType() == org.nexus.leDatOrder.enums.CurrencyType.PLAYERPOINTS && !playerPointsAvailable) {
-                        data.toggleCurrencyType(); // Chuyển lại nếu PlayerPoints không khả dụng
+                    } else if (data.getCurrencyType() == org.nexus.leDatOrder.enums.CurrencyType.PLAYERPOINTS && !ppOK) {
+                        data.toggleCurrencyType();
                         player.sendMessage(plugin.getConfigManager().getMessage("currency.playerpoints-unavailable-switch"));
                     }
-                    
-                    // Thông báo loại tiền tệ hiện tại
-                    String currencyName = data.getCurrencyType() == org.nexus.leDatOrder.enums.CurrencyType.VAULT ? "Vault Money" : "PlayerPoints";
-                    player.sendMessage(plugin.getConfigManager().getMessage("currency.type-changed", "%type%", currencyName));
-                    
-                    // Cập nhật GUI
+                    String name = data.getCurrencyType() == org.nexus.leDatOrder.enums.CurrencyType.VAULT ? "Vault Money" : "PlayerPoints";
+                    player.sendMessage(plugin.getConfigManager().getMessage("currency.type-changed", "%type%", name));
                     new CreateOrderGUI(plugin, player).open();
                 }
             }
-        } else if (title.equals(ColorUtils.colorize("&6Select Material"))) {
+            return;
+        }
+
+        // ==== MATERIAL SELECT ====
+        if (strippedTitle.equalsIgnoreCase(materialSelectTitle)) {
             event.setCancelled(true);
-            
             int slot = event.getRawSlot();
-            ItemStack clickedItem = event.getCurrentItem();
-            
-            if (clickedItem == null) return;
-            
+            ItemStack clicked = event.getCurrentItem();
+            if (clicked == null) return;
+
             if (slot < 45) {
-                // Chọn material
-                Material material = clickedItem.getType();
+                Material mat = clicked.getType();
                 CreateOrderGUI.CreateOrderData data = CreateOrderGUI.getCreateData(player);
                 if (data != null) {
-                    data.setMaterial(material);
-                    player.sendMessage(ColorUtils.colorize("&aMaterial set to &e" + material.name()));
-                    MaterialSelectGUI.clearSearch(player); // Xóa tìm kiếm khi đã chọn
+                    data.setMaterial(mat);
+                    player.sendMessage(ColorUtils.colorize("&aĐã chọn vật liệu: &e" + mat.name()));
+                    MaterialSelectGUI.clearSearch(player);
                     new CreateOrderGUI(plugin, player).open();
                 }
-            } else if (slot == plugin.getConfigManager().getMaterialSelectFilterItemSlot() && clickedItem.getType() == Material.HOPPER) {
-                // Xử lý nút Filter
+                return;
+            }
+
+            int filterSlot = plugin.getConfigManager().getMaterialSelectFilterItemSlot();
+            if (slot == filterSlot && clicked.getType() == plugin.getConfigManager().getMaterialSelectFilterItemMaterial()) {
                 MaterialSelectGUI gui = new MaterialSelectGUI(plugin, player);
-                OrderType currentType = null;
-                
-                // Tìm loại filter tiếp theo
-                boolean foundCurrent = false;
-                for (OrderType type : OrderType.values()) {
-                    if (foundCurrent) {
-                        currentType = type;
-                        break;
-                    }
-                    if (type == gui.getCurrentFilterType()) {
-                        foundCurrent = true;
-                    }
-                }
-                
-                // Nếu đã ở loại cuối cùng, quay lại loại đầu tiên
-                if (currentType == null) {
-                    currentType = OrderType.values()[0]; // Sửa từ ALL thành values()[0]
-                }
-                
-                gui.setFilterType(currentType);
+                OrderType cur = gui.getCurrentFilterType();
+                OrderType[] all = OrderType.values();
+                int idx = 0;
+                for (int i = 0; i < all.length; i++) if (all[i] == cur) { idx = i; break; }
+                gui.setFilterType(all[(idx + 1) % all.length]);
                 gui.open();
-            } else if (slot == plugin.getConfigManager().getMaterialSelectCommonItemSlot() && clickedItem.getType() == Material.COMPASS) {
-                // Hiển thị common materials hoặc tất cả
+                return;
+            }
+
+            int commonSlot = plugin.getConfigManager().getMaterialSelectCommonItemSlot();
+            if (slot == commonSlot && clicked.getType() == plugin.getConfigManager().getMaterialSelectCommonItemMaterial()) {
                 MaterialSelectGUI gui = new MaterialSelectGUI(plugin, player);
                 gui.toggleCommonMaterials();
                 gui.open();
-            } else if (slot == plugin.getConfigManager().getMaterialSelectSearchItemSlot() && clickedItem.getType() == Material.OAK_SIGN) {
-                // Tìm kiếm
-                String currentSearch = MaterialSelectGUI.getSearch(player);
-                if (!currentSearch.isEmpty()) {
-                    // Nếu đã có tìm kiếm, xóa nó
+                return;
+            }
+
+            int searchSlot = plugin.getConfigManager().getMaterialSelectSearchItemSlot();
+            if (slot == searchSlot && clicked.getType() == plugin.getConfigManager().getMaterialSelectSearchItemMaterial()) {
+                String curSearch = MaterialSelectGUI.getSearch(player);
+                if (!curSearch.isEmpty()) {
                     MaterialSelectGUI.clearSearch(player);
                     new MaterialSelectGUI(plugin, player).open();
-                    player.sendMessage(ColorUtils.colorize("&aSearch cleared"));
+                    player.sendMessage(ColorUtils.colorize("&aĐã xóa tìm kiếm"));
                 } else {
                     player.closeInventory();
-                    player.sendMessage(ColorUtils.colorize("&aPlease enter search term in chat:"));
+                    player.sendMessage(ColorUtils.colorize("&aNhập từ khóa tìm kiếm trong chat:"));
                     awaitingChatInput.put(player.getUniqueId(), ChatInputType.MATERIAL_SEARCH);
                 }
-            } else if (slot == plugin.getConfigManager().getMaterialSelectBackItemSlot() && clickedItem.getType() == Material.RED_STAINED_GLASS_PANE) {
+                return;
+            }
+
+            int backSlot = plugin.getConfigManager().getMaterialSelectBackItemSlot();
+            if (slot == backSlot && clicked.getType() == plugin.getConfigManager().getMaterialSelectBackItemMaterial()) {
                 MaterialSelectGUI.clearSearch(player);
                 new CreateOrderGUI(plugin, player).open();
-            } else if (slot == plugin.getConfigManager().getMaterialSelectPreviousPageItemSlot() && clickedItem.getType() == Material.ARROW) {
+                return;
+            }
+
+            int prevSlot = plugin.getConfigManager().getMaterialSelectPreviousPageItemSlot();
+            if (slot == prevSlot && clicked.getType() == plugin.getConfigManager().getMaterialSelectPreviousPageItemMaterial()) {
                 MaterialSelectGUI gui = new MaterialSelectGUI(plugin, player);
                 gui.previousPage();
                 gui.open();
-            } else if (slot == plugin.getConfigManager().getMaterialSelectNextPageItemSlot() && clickedItem.getType() == Material.ARROW) {
+                return;
+            }
+
+            int nextSlot = plugin.getConfigManager().getMaterialSelectNextPageItemSlot();
+            if (slot == nextSlot && clicked.getType() == plugin.getConfigManager().getMaterialSelectNextPageItemMaterial()) {
                 MaterialSelectGUI gui = new MaterialSelectGUI(plugin, player);
                 gui.nextPage();
                 gui.open();
             }
+            return;
         }
+    }
+
+    /**
+     * Mở GUI giao hàng khi click vào 1 order trên danh sách.
+     * slot: vị trí ô được click trong 45 ô đầu (vùng hiển thị order).
+     */
+    private void handleOrderClick(Player player, int slot, OrderGUI gui) {
+        // Lấy danh sách order đã lọc & sắp xếp theo trạng thái hiện tại của GUI
+        List<Order> orders = plugin.getOrderManager().getSortedOrders(
+                gui.getCurrentSortType(),
+                gui.getCurrentFilterType()
+        );
+
+        // Phân trang: mỗi trang hiển thị tối đa 45 item (0..44)
+        int startIndex = gui.getCurrentPage() * 45;
+        int index = startIndex + slot;
+
+        if (index < 0 || index >= orders.size()) {
+            return; // click vào ô trống
+        }
+
+        Order order = orders.get(index);
+
+        // Không cho tự giao cho chính mình
+        if (order.getPlayerUUID().equals(player.getUniqueId())) {
+            player.sendMessage(ColorUtils.colorize("&cBạn không thể giao đồ cho chính mình!"));
+            return;
+        }
+
+        // Nếu bạn đã có cơ chế escrow và muốn chặn đơn chưa khóa tiền:
+        // if (!order.isEscrowed()) {
+        //     player.sendMessage(ColorUtils.colorize("&eĐơn này chưa khóa tiền. Vui lòng bảo chủ đơn hủy và tạo lại!"));
+        //     return;
+        // }
+
+        new OrderDeliveryGUI(plugin, player, order).open();
     }
 
     @EventHandler
     public void onPlayerChat(AsyncPlayerChatEvent event) {
         Player player = event.getPlayer();
         UUID playerId = player.getUniqueId();
-        
-        if (awaitingChatInput.containsKey(playerId)) {
-            event.setCancelled(true);
-            String message = event.getMessage();
-            ChatInputType inputType = awaitingChatInput.get(playerId);
-            awaitingChatInput.remove(playerId);
 
-            plugin.getFoliaLib().getScheduler().runAtEntity(player, (task) -> {
-                if (inputType == ChatInputType.MATERIAL_SEARCH) {
-                    MaterialSelectGUI.setSearch(player, message);
-                    player.sendMessage(ColorUtils.colorize("&aKết quả tìm kiếm: &e" + message));
-                    new MaterialSelectGUI(plugin, player).open();
-                    return;
-                }
-                
-                CreateOrderGUI.CreateOrderData data = CreateOrderGUI.getCreateData(player);
-                if (data == null) return;
-                
-                if (inputType == ChatInputType.AMOUNT) {
-                    try {
-                        int amount = Integer.parseInt(message);
-                        if (amount <= 0) {
-                            player.sendMessage(ColorUtils.colorize("&cAmount must be greater than 0."));
-                        } else {
-                            data.setAmount(amount);
-                            player.sendMessage(ColorUtils.colorize("&aAmount set to &e" + amount));
-                        }
-                    } catch (NumberFormatException e) {
-                        player.sendMessage(ColorUtils.colorize("&cInvalid number format. Please enter a valid number."));
-                    }
-                } else if (inputType == ChatInputType.PRICE) {
-                    try {
-                        double price = Double.parseDouble(message);
-                        if (price <= 0) {
-                            player.sendMessage(ColorUtils.colorize("&cPrice must be greater than 0."));
-                        } else {
-                            data.setPricePerItem(price);
-                            player.sendMessage(ColorUtils.colorize("&aPrice set to &e$" + String.format("%.2f", price)));
-                        }
-                    } catch (NumberFormatException e) {
-                        player.sendMessage(ColorUtils.colorize("&cInvalid number format. Please enter a valid number."));
-                    }
-                }
-                
-                // Mở lại GUI
-                new CreateOrderGUI(plugin, player).open();
-            });
-        }
-    }
+        if (!awaitingChatInput.containsKey(playerId)) return;
 
-    private void handleOrderClick(Player player, int slot, OrderGUI orderGUI) {
-        // Lấy danh sách order đã lọc và sắp xếp
-        List<Order> filteredOrders = plugin.getOrderManager().getSortedOrders(
-            orderGUI.getCurrentSortType(),
-            orderGUI.getCurrentFilterType());
-        
-        // Tính toán phân trang
-        int startIndex = orderGUI.getCurrentPage() * 45;
-        
-        // Kiểm tra xem slot có hợp lệ không
-        int adjustedSlot = slot + startIndex;
-        if (adjustedSlot >= filteredOrders.size()) {
-            return;
-        }
-        
-        // Lấy order tương ứng với slot
-        Order order = filteredOrders.get(adjustedSlot);
-        
-        // Kiểm tra xem người chơi có đang cố giao đồ cho chính mình không
-        if (order.getPlayerUUID().equals(player.getUniqueId())) {
-            player.sendMessage(ColorUtils.colorize("&cBạn không thể giao đồ cho chính mình!"));
-            return;
-        }
-        
-        // Mở GUI giao hàng
-        new OrderDeliveryGUI(plugin, player, order).open();
+        event.setCancelled(true);
+        String message = event.getMessage();
+        ChatInputType type = awaitingChatInput.remove(playerId);
+
+        plugin.getFoliaLib().getScheduler().runAtEntity(player, (task) -> {
+            if (type == ChatInputType.MATERIAL_SEARCH) {
+                MaterialSelectGUI.setSearch(player, message);
+                player.sendMessage(ColorUtils.colorize("&aKết quả tìm kiếm: &e" + message));
+                new MaterialSelectGUI(plugin, player).open();
+                return;
+            }
+
+            CreateOrderGUI.CreateOrderData data = CreateOrderGUI.getCreateData(player);
+            if (data == null) return;
+
+            if (type == ChatInputType.AMOUNT) {
+                try {
+                    int amount = Integer.parseInt(message.replaceAll("[^0-9]", ""));
+                    if (amount <= 0) {
+                        player.sendMessage(ColorUtils.colorize("&cSố lượng phải > 0."));
+                    } else {
+                        data.setAmount(amount);
+                        player.sendMessage(ColorUtils.colorize("&aĐã đặt số lượng: &e" + amount));
+                    }
+                } catch (NumberFormatException ex) {
+                    player.sendMessage(ColorUtils.colorize("&cSai định dạng số. Vui lòng nhập số nguyên."));
+                }
+            } else if (type == ChatInputType.PRICE) {
+                try {
+                    String norm = message.replace(",", ".").replaceAll("[^0-9.]", "");
+                    double price = Double.parseDouble(norm);
+                    if (price <= 0D) {
+                        player.sendMessage(ColorUtils.colorize("&cGiá phải > 0."));
+                    } else {
+                        data.setPricePerItem(price);
+                        String pretty = (data.getCurrencyType() == org.nexus.leDatOrder.enums.CurrencyType.VAULT)
+                                ? ("$" + String.format("%.2f", price))
+                                : ((int) Math.round(price) + " Points");
+                        player.sendMessage(ColorUtils.colorize("&aĐã đặt giá: &e" + pretty));
+                    }
+                } catch (NumberFormatException ex) {
+                    player.sendMessage(ColorUtils.colorize("&cSai định dạng số. Ví dụ hợp lệ: 12.5 hoặc 12,5"));
+                }
+            }
+
+            new CreateOrderGUI(plugin, player).open();
+        });
     }
 
     @EventHandler
     public void onInventoryClose(InventoryCloseEvent event) {
-        if (!(event.getPlayer() instanceof Player)) return;
-        
-        Player player = (Player) event.getPlayer();
-        String title = event.getView().getTitle();
-        
-        if (title.startsWith(ColorUtils.colorize("&6Order -> "))) {
+        if (!(event.getPlayer() instanceof Player player)) return;
+
+        String stripped = stripColor(event.getView().getTitle());
+        String deliveryPrefix = stripColor(plugin.getConfigManager().getOrderDeliveryGuiTitle())
+                .replace("%player%", "").trim();
+
+        if (stripped.startsWith(deliveryPrefix)) {
             OrderDeliveryGUI.processDelivery(plugin, player, event.getInventory());
         }
+    }
+
+    private String stripColor(String input) {
+        if (input == null) return "";
+        return ChatColor.stripColor(input);
     }
 }

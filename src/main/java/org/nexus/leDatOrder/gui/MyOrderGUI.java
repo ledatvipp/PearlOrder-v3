@@ -31,8 +31,10 @@ public class MyOrderGUI {
     }
 
     private void createInventory() {
-        String title = ColorUtils.colorize("&6Your Orders");
-        inventory = Bukkit.createInventory(null, 36, title);
+        // Use configurable title and size for the player's orders GUI
+        String title = plugin.getConfigManager().getMyOrderGuiTitle();
+        int size = plugin.getConfigManager().getMyOrderGuiSize();
+        inventory = Bukkit.createInventory(null, size, title);
     }
 
     private void updateInventory() {
@@ -51,90 +53,101 @@ public class MyOrderGUI {
             inventory.setItem(i, orderItem);
         }
 
-        // Thêm border (BLACK_STAINED_GLASS_PANE) cho slot 27-35
-        ItemStack borderItem = new ItemStack(Material.BLACK_STAINED_GLASS_PANE);
+        // Lấy thông tin border item và create item từ cấu hình
+        // Border items fill the last row of the inventory (from size-9 to size-1)
+        Material borderMat = plugin.getConfigManager().getItemMaterial("gui.my-order.border-item", Material.BLACK_STAINED_GLASS_PANE);
+        String borderName = plugin.getConfigManager().getItemDisplayName("gui.my-order.border-item", " ");
+        List<String> borderLore = plugin.getConfigManager().getItemLore("gui.my-order.border-item");
+        ItemStack borderItem = new ItemStack(borderMat);
         ItemMeta borderMeta = borderItem.getItemMeta();
         if (borderMeta != null) {
-            borderMeta.setDisplayName(" ");
+            borderMeta.setDisplayName(ColorUtils.colorize(borderName));
+            if (borderLore != null && !borderLore.isEmpty()) {
+                List<String> lore = new ArrayList<>();
+                for (String l : borderLore) {
+                    lore.add(ColorUtils.colorize(l));
+                }
+                borderMeta.setLore(lore);
+            }
             borderItem.setItemMeta(borderMeta);
         }
-
-        for (int i = 27; i < 36; i++) {
+        // Fill the last row with border items
+        int invSize = inventory.getSize();
+        for (int i = invSize - 9; i < invSize; i++) {
             inventory.setItem(i, borderItem);
         }
-
-        // Thêm nút Create Order (MAP) ở slot 31
-        ItemStack createItem = new ItemStack(Material.MAP);
+        // Create button from config
+        int createSlot = plugin.getConfigManager().getItemSlot("gui.my-order.create-item", 31);
+        Material createMat = plugin.getConfigManager().getItemMaterial("gui.my-order.create-item", Material.MAP);
+        String createName = plugin.getConfigManager().getItemDisplayName("gui.my-order.create-item", "&6Create New Order");
+        List<String> createLore = plugin.getConfigManager().getItemLore("gui.my-order.create-item");
+        ItemStack createItem = new ItemStack(createMat);
         ItemMeta createMeta = createItem.getItemMeta();
         if (createMeta != null) {
-            createMeta.setDisplayName(ColorUtils.colorize("&6Create New Order"));
-            List<String> createLore = new ArrayList<>();
-            createLore.add(ColorUtils.colorize("&7Click to create a new order"));
-            createMeta.setLore(createLore);
+            createMeta.setDisplayName(ColorUtils.colorize(createName));
+            if (createLore != null && !createLore.isEmpty()) {
+                List<String> lore = new ArrayList<>();
+                for (String l : createLore) {
+                    lore.add(ColorUtils.colorize(l));
+                }
+                createMeta.setLore(lore);
+            }
             createItem.setItemMeta(createMeta);
         }
-        inventory.setItem(31, createItem);
+        // Place the create button
+        if (createSlot >= 0 && createSlot < inventory.getSize()) {
+            inventory.setItem(createSlot, createItem);
+        }
     }
 
     private ItemStack createMyOrderItem(Order order) {
+        // Create an item representing the player's order using configurable display name and lore
         ItemStack item = new ItemStack(order.getMaterial());
         ItemMeta meta = item.getItemMeta();
-
         if (meta != null) {
-            // Set display name
-            String displayName = ColorUtils.colorize("&6" + player.getName() + "'s Order");
-            meta.setDisplayName(displayName);
+            // Display name
+            String displayName = plugin.getConfigManager()
+                    .getItemDisplayName("gui.my-order.order-item", "&6%player%'s Order")
+                    .replace("%player%", order.getPlayerName());
+            meta.setDisplayName(ColorUtils.colorize(displayName));
 
-            // Set lore
+            // Build lore with placeholder replacements
+            List<String> configLore = plugin.getConfigManager().getItemLore("gui.my-order.order-item");
+            if (configLore == null || configLore.isEmpty()) {
+                configLore = new ArrayList<>();
+            }
             List<String> lore = new ArrayList<>();
-            lore.add(ColorUtils.colorize("&a" + order.getRequiredAmount() + " &f" + order.getMaterial().name()));
-
-            // Hiển thị giá theo loại tiền tệ
+            // Prepare values
+            String priceString;
             if (order.getCurrencyType() == org.nexus.leDatOrder.enums.CurrencyType.VAULT) {
-                lore.add(ColorUtils.colorize("&a$" + String.format("%.2f", order.getPricePerItem()) + " per item"));
+                priceString = "$" + String.format("%.2f", order.getPricePerItem());
             } else {
-                lore.add(ColorUtils.colorize("&a" + (int)order.getPricePerItem() + " Points per item"));
+                priceString = ((int) order.getPricePerItem()) + " Points";
             }
-
-            lore.add(ColorUtils.colorize("&7Currency: &e" + (order.getCurrencyType() == org.nexus.leDatOrder.enums.CurrencyType.VAULT ? "Vault" : "Points")));
-            lore.add(" ");
-            lore.add(ColorUtils.colorize("&eDelivered: &a" + order.getReceivedAmount() + "&7/&a" + order.getRequiredAmount()));
-            lore.add(ColorUtils.colorize("&eCollected: &a" + order.getCollectedAmount() + "&7/&a" + order.getReceivedAmount()));
-
-            // Hiển thị items có thể collect
-            int availableToCollect = order.getReceivedAmount() - order.getCollectedAmount();
-            if (availableToCollect > 0) {
-                lore.add(ColorUtils.colorize("&aAvailable to collect: &e" + availableToCollect));
-            }
-
-            lore.add(" ");
-
-            // Hiển thị thông tin thanh toán
-            double totalCost = order.getRequiredAmount() * order.getPricePerItem();
+            double totalCost = order.getPricePerItem() * order.getRequiredAmount();
+            String totalString;
             if (order.getCurrencyType() == org.nexus.leDatOrder.enums.CurrencyType.VAULT) {
-                lore.add(ColorUtils.colorize("&ePaid: &a$" + String.format("%.2f", order.getPaidAmount()) + "&7/&a$" + String.format("%.2f", totalCost)));
+                totalString = "$" + String.format("%.2f", totalCost);
             } else {
-                lore.add(ColorUtils.colorize("&ePaid: &a" + (int)order.getPaidAmount() + "&7/&a" + (int)totalCost + " Points"));
+                totalString = ((int) totalCost) + " Points";
             }
-
-            // Status
-            if (order.isCompleted()) {
-                if (availableToCollect > 0) {
-                    lore.add(ColorUtils.colorize("&aStatus: &eReady to collect"));
-                } else {
-                    lore.add(ColorUtils.colorize("&aStatus: &2Completed"));
-                }
-            } else {
-                lore.add(ColorUtils.colorize("&aStatus: &6Waiting for delivery"));
+            String currencyName = order.getCurrencyType() == org.nexus.leDatOrder.enums.CurrencyType.VAULT ? "Vault" : "Points";
+            for (String line : configLore) {
+                String processed = line
+                        .replace("%player%", order.getPlayerName())
+                        .replace("%amount%", String.valueOf(order.getRequiredAmount()))
+                        .replace("%material%", order.getMaterial().name())
+                        .replace("%price%", priceString)
+                        .replace("%currency%", currencyName)
+                        .replace("%received%", String.valueOf(order.getReceivedAmount()))
+                        .replace("%required%", String.valueOf(order.getRequiredAmount()))
+                        .replace("%paid%", (order.getCurrencyType() == org.nexus.leDatOrder.enums.CurrencyType.VAULT ? "$" + String.format("%.2f", order.getPaidAmount()) : String.valueOf((int) order.getPaidAmount())))
+                        .replace("%total%", totalString);
+                lore.add(ColorUtils.colorize(processed));
             }
-
-            lore.add(" ");
-            lore.add(ColorUtils.colorize("&7Click to manage this order"));
-
             meta.setLore(lore);
             item.setItemMeta(meta);
         }
-
         return item;
     }
 }

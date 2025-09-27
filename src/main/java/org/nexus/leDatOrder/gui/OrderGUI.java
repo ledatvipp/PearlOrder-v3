@@ -98,91 +98,158 @@ public class OrderGUI {
     }
 
     private void addFunctionButtons() {
-        // Sort button (CAULDRON)
-        ItemStack sortItem = new ItemStack(Material.CAULDRON);
-        ItemMeta sortMeta = sortItem.getItemMeta();
-        if (sortMeta != null) {
-            sortMeta.setDisplayName(ColorUtils.colorize("&6Sort"));
-            List<String> sortLore = new ArrayList<>();
-            for (SortType type : SortType.values()) {
-                String prefix = (type == currentSortType) ? "&a✓ " : "&7";
-                sortLore.add(ColorUtils.colorize(prefix + type.getDisplayName()));
+        // Sort button using configuration
+        {
+            Material sortMat = plugin.getConfigManager().getItemMaterial("gui.order.sort-item", Material.CAULDRON);
+            String sortName = plugin.getConfigManager().getItemDisplayName("gui.order.sort-item", "&6Sort");
+            List<String> sortLoreCfg = plugin.getConfigManager().getItemLore("gui.order.sort-item");
+            ItemStack sortItem = new ItemStack(sortMat);
+            ItemMeta sortMeta = sortItem.getItemMeta();
+            if (sortMeta != null) {
+                sortMeta.setDisplayName(ColorUtils.colorize(sortName));
+                List<String> lore = new ArrayList<>();
+                if (sortLoreCfg != null && !sortLoreCfg.isEmpty()) {
+                    for (String line : sortLoreCfg) {
+                        lore.add(ColorUtils.colorize(line));
+                    }
+                }
+                for (SortType type : SortType.values()) {
+                    String prefix = (type == currentSortType) ? "&a✓ " : "&7";
+                    lore.add(ColorUtils.colorize(prefix + type.getDisplayName()));
+                }
+                sortMeta.setLore(lore);
+                sortItem.setItemMeta(sortMeta);
             }
-            sortMeta.setLore(sortLore);
-            sortItem.setItemMeta(sortMeta);
+            inventory.setItem(plugin.getConfigManager().getSortItemSlot(), sortItem);
         }
-        inventory.setItem(plugin.getConfigManager().getSortItemSlot(), sortItem);
 
-        // Filter button (HOPPER)
-        ItemStack filterItem = new ItemStack(Material.HOPPER);
-        ItemMeta filterMeta = filterItem.getItemMeta();
-        if (filterMeta != null) {
-            filterMeta.setDisplayName(ColorUtils.colorize("&6Filter"));
-            List<String> filterLore = new ArrayList<>();
-            for (OrderType type : OrderType.values()) {
-                String prefix = (type == currentFilterType) ? "&a✓ " : "&7";
-                filterLore.add(ColorUtils.colorize(prefix + type.getDisplayName()));
+        // Filter button using configuration
+        {
+            Material filterMat = plugin.getConfigManager().getItemMaterial("gui.order.filter-item", Material.HOPPER);
+            String filterName = plugin.getConfigManager().getItemDisplayName("gui.order.filter-item", "&6Filter");
+            List<String> filterLoreCfg = plugin.getConfigManager().getItemLore("gui.order.filter-item");
+            ItemStack filterItem = new ItemStack(filterMat);
+            ItemMeta filterMeta = filterItem.getItemMeta();
+            if (filterMeta != null) {
+                filterMeta.setDisplayName(ColorUtils.colorize(filterName));
+                List<String> lore = new ArrayList<>();
+                if (filterLoreCfg != null && !filterLoreCfg.isEmpty()) {
+                    for (String line : filterLoreCfg) {
+                        lore.add(ColorUtils.colorize(line));
+                    }
+                }
+                for (OrderType type : OrderType.values()) {
+                    String prefix = (type == currentFilterType) ? "&a✓ " : "&7";
+                    lore.add(ColorUtils.colorize(prefix + type.getDisplayName()));
+                }
+                filterMeta.setLore(lore);
+                filterItem.setItemMeta(filterMeta);
             }
-            filterMeta.setLore(filterLore);
-            filterItem.setItemMeta(filterMeta);
+            inventory.setItem(plugin.getConfigManager().getFilterItemSlot(), filterItem);
         }
-        inventory.setItem(plugin.getConfigManager().getFilterItemSlot(), filterItem);
 
-        // Refresh button (MAP)
-        ItemStack refreshItem = new ItemStack(Material.MAP);
-        ItemMeta refreshMeta = refreshItem.getItemMeta();
-        if (refreshMeta != null) {
-            refreshMeta.setDisplayName(ColorUtils.colorize("&6Refresh"));
-            List<String> refreshLore = new ArrayList<>();
-            refreshLore.add(ColorUtils.colorize("&7Làm mới GUI"));
-            refreshMeta.setLore(refreshLore);
-            refreshItem.setItemMeta(refreshMeta);
+        // Refresh button using configuration
+        {
+            Material refreshMat = plugin.getConfigManager().getItemMaterial("gui.order.refresh-item", Material.MAP);
+            String refreshName = plugin.getConfigManager().getItemDisplayName("gui.order.refresh-item", "&6Refresh");
+            List<String> refreshLoreCfg = plugin.getConfigManager().getItemLore("gui.order.refresh-item");
+            ItemStack refreshItem = new ItemStack(refreshMat);
+            ItemMeta refreshMeta = refreshItem.getItemMeta();
+            if (refreshMeta != null) {
+                refreshMeta.setDisplayName(ColorUtils.colorize(refreshName));
+                List<String> lore = new ArrayList<>();
+                if (refreshLoreCfg != null && !refreshLoreCfg.isEmpty()) {
+                    for (String line : refreshLoreCfg) {
+                        lore.add(ColorUtils.colorize(line));
+                    }
+                }
+                refreshMeta.setLore(lore);
+                refreshItem.setItemMeta(refreshMeta);
+            }
+            inventory.setItem(plugin.getConfigManager().getRefreshItemSlot(), refreshItem);
         }
-        inventory.setItem(plugin.getConfigManager().getRefreshItemSlot(), refreshItem);
 
-        // Search button (OAK_SIGN)
-        ItemStack searchItem = new ItemStack(Material.OAK_SIGN);
-        ItemMeta searchMeta = searchItem.getItemMeta();
-        if (searchMeta != null) {
-            searchMeta.setDisplayName(ColorUtils.colorize("&6Tìm kiếm"));
-            List<String> searchLore = new ArrayList<>();
-            searchLore.add(ColorUtils.colorize("&7Tìm kiếm material nhanh"));
-            searchMeta.setLore(searchLore);
-            searchItem.setItemMeta(searchMeta);
+        // Search button using configuration
+        {
+            Material searchMat = plugin.getConfigManager().getItemMaterial("gui.order.search-item", Material.OAK_SIGN);
+            String searchName = plugin.getConfigManager().getItemDisplayName("gui.order.search-item", "&6Tìm kiếm");
+            List<String> searchLoreCfg = plugin.getConfigManager().getItemLore("gui.order.search-item");
+            ItemStack searchItem = new ItemStack(searchMat);
+            ItemMeta searchMeta = searchItem.getItemMeta();
+            if (searchMeta != null) {
+                searchMeta.setDisplayName(ColorUtils.colorize(searchName));
+                List<String> lore = new ArrayList<>();
+                if (searchLoreCfg != null && !searchLoreCfg.isEmpty()) {
+                    for (String line : searchLoreCfg) {
+                        lore.add(ColorUtils.colorize(line));
+                    }
+                }
+                searchMeta.setLore(lore);
+                searchItem.setItemMeta(searchMeta);
+            }
+            inventory.setItem(plugin.getConfigManager().getSearchItemSlot(), searchItem);
         }
-        inventory.setItem(plugin.getConfigManager().getSearchItemSlot(), searchItem);
 
-        // Create Order button (DROPPER)
-        ItemStack createItem = new ItemStack(Material.DROPPER);
-        ItemMeta createMeta = createItem.getItemMeta();
-        if (createMeta != null) {
-            createMeta.setDisplayName(ColorUtils.colorize("&6Tạo Order"));
-            List<String> createLore = new ArrayList<>();
-            createLore.add(ColorUtils.colorize("&7Mở GUI tạo order mới"));
-            createMeta.setLore(createLore);
-            createItem.setItemMeta(createMeta);
+        // Create Order button using configuration
+        {
+            Material createMat = plugin.getConfigManager().getItemMaterial("gui.order.create-item", Material.DROPPER);
+            String createName = plugin.getConfigManager().getItemDisplayName("gui.order.create-item", "&6Tạo Order");
+            List<String> createLoreCfg = plugin.getConfigManager().getItemLore("gui.order.create-item");
+            ItemStack createItem = new ItemStack(createMat);
+            ItemMeta createMeta = createItem.getItemMeta();
+            if (createMeta != null) {
+                createMeta.setDisplayName(ColorUtils.colorize(createName));
+                List<String> lore = new ArrayList<>();
+                if (createLoreCfg != null && !createLoreCfg.isEmpty()) {
+                    for (String line : createLoreCfg) {
+                        lore.add(ColorUtils.colorize(line));
+                    }
+                }
+                createMeta.setLore(lore);
+                createItem.setItemMeta(createMeta);
+            }
+            inventory.setItem(plugin.getConfigManager().getCreateItemSlot(), createItem);
         }
-        inventory.setItem(plugin.getConfigManager().getCreateItemSlot(), createItem);
 
-        // Previous page button (ARROW)
+        // Previous page button using configuration (only show if currentPage > 0)
         if (currentPage > 0) {
-            ItemStack prevItem = new ItemStack(Material.ARROW);
+            Material prevMat = plugin.getConfigManager().getItemMaterial("gui.order.previous-page-item", Material.ARROW);
+            String prevName = plugin.getConfigManager().getItemDisplayName("gui.order.previous-page-item", "&6Trang trước");
+            List<String> prevLoreCfg = plugin.getConfigManager().getItemLore("gui.order.previous-page-item");
+            ItemStack prevItem = new ItemStack(prevMat);
             ItemMeta prevMeta = prevItem.getItemMeta();
             if (prevMeta != null) {
-                prevMeta.setDisplayName(ColorUtils.colorize("&6Trang trước"));
+                prevMeta.setDisplayName(ColorUtils.colorize(prevName));
+                List<String> lore = new ArrayList<>();
+                if (prevLoreCfg != null && !prevLoreCfg.isEmpty()) {
+                    for (String line : prevLoreCfg) {
+                        lore.add(ColorUtils.colorize(line));
+                    }
+                }
+                prevMeta.setLore(lore);
                 prevItem.setItemMeta(prevMeta);
             }
             inventory.setItem(plugin.getConfigManager().getPreviousPageItemSlot(), prevItem);
         }
 
-        // Next page button (ARROW)
+        // Next page button using configuration (only show if there are more pages)
         List<Order> filteredOrders = plugin.getOrderManager().getSortedOrders(currentSortType, currentFilterType);
         int totalPages = (int) Math.ceil(filteredOrders.size() / 45.0);
         if (currentPage < totalPages - 1) {
-            ItemStack nextItem = new ItemStack(Material.ARROW);
+            Material nextMat = plugin.getConfigManager().getItemMaterial("gui.order.next-page-item", Material.ARROW);
+            String nextName = plugin.getConfigManager().getItemDisplayName("gui.order.next-page-item", "&6Trang sau");
+            List<String> nextLoreCfg = plugin.getConfigManager().getItemLore("gui.order.next-page-item");
+            ItemStack nextItem = new ItemStack(nextMat);
             ItemMeta nextMeta = nextItem.getItemMeta();
             if (nextMeta != null) {
-                nextMeta.setDisplayName(ColorUtils.colorize("&6Trang sau"));
+                nextMeta.setDisplayName(ColorUtils.colorize(nextName));
+                List<String> lore = new ArrayList<>();
+                if (nextLoreCfg != null && !nextLoreCfg.isEmpty()) {
+                    for (String line : nextLoreCfg) {
+                        lore.add(ColorUtils.colorize(line));
+                    }
+                }
+                nextMeta.setLore(lore);
                 nextItem.setItemMeta(nextMeta);
             }
             inventory.setItem(plugin.getConfigManager().getNextPageItemSlot(), nextItem);

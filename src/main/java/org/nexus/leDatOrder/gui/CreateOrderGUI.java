@@ -41,115 +41,174 @@ public class CreateOrderGUI {
     }
 
     private void createInventory() {
-        String title = ColorUtils.colorize("&6Create Order");
-        inventory = Bukkit.createInventory(null, 27, title);
+        // Use configurable title and size for the create order GUI.  The title may contain colour codes and
+        // placeholders that are already colourised by ConfigManager.  The size defaults to 27 if not set.
+        String title = plugin.getConfigManager().getCreateOrderGuiTitle();
+        int size = plugin.getConfigManager().getCreateOrderGuiSize();
+        inventory = Bukkit.createInventory(null, size, title);
     }
 
     private void updateInventory() {
         inventory.clear();
-        
+
         CreateOrderData data = playerCreateMap.get(player.getUniqueId());
 
-        // Nút Back (RED_STAINED_GLASS_PANE) ở slot 10
-        ItemStack backItem = new ItemStack(Material.RED_STAINED_GLASS_PANE);
+        // Back
+        int backSlot = plugin.getConfigManager().getItemSlot("gui.create-order.back-item", 10);
+        Material backMat = plugin.getConfigManager().getItemMaterial("gui.create-order.back-item", Material.RED_STAINED_GLASS_PANE);
+        String backName = plugin.getConfigManager().getItemDisplayName("gui.create-order.back-item", "&cBack");
+        List<String> backLore = plugin.getConfigManager().getItemLore("gui.create-order.back-item");
+        ItemStack backItem = new ItemStack(backMat);
         ItemMeta backMeta = backItem.getItemMeta();
         if (backMeta != null) {
-            backMeta.setDisplayName(ColorUtils.colorize("&cBack"));
-            List<String> lore = new ArrayList<>();
-            lore.add(ColorUtils.colorize("&7Return to Your Orders"));
-            backMeta.setLore(lore);
+            backMeta.setDisplayName(backName);
+            if (backLore != null && !backLore.isEmpty()) backMeta.setLore(backLore);
             backItem.setItemMeta(backMeta);
         }
-        inventory.setItem(10, backItem);
+        if (backSlot >= 0 && backSlot < inventory.getSize()) inventory.setItem(backSlot, backItem);
 
-        // Item yêu cầu order (slot 12)
-        ItemStack materialItem = new ItemStack(data.getMaterial());
+        // Material select
+        int materialSlot = plugin.getConfigManager().getItemSlot("gui.create-order.material-item", 12);
+        Material materialMat = plugin.getConfigManager().getItemMaterial("gui.create-order.material-item", Material.STONE);
+        String materialItemName = plugin.getConfigManager().getItemDisplayName("gui.create-order.material-item", "&6Select Material");
+        List<String> materialLore = plugin.getConfigManager().getItemLore("gui.create-order.material-item");
+        ItemStack materialItem = new ItemStack(materialMat);
         ItemMeta materialMeta = materialItem.getItemMeta();
         if (materialMeta != null) {
-            materialMeta.setDisplayName(ColorUtils.colorize("&6Select Material"));
+            materialMeta.setDisplayName(ColorUtils.colorize(materialItemName.replace("%material%", data.getMaterial().name())));
             List<String> lore = new ArrayList<>();
-            lore.add(ColorUtils.colorize("&7Current: &a" + data.getMaterial().name()));
-            lore.add(ColorUtils.colorize("&7Click to change material"));
+            if (materialLore != null && !materialLore.isEmpty()) {
+                for (String line : materialLore) {
+                    lore.add(ColorUtils.colorize(line.replace("%material%", data.getMaterial().name())));
+                }
+            }
             materialMeta.setLore(lore);
             materialItem.setItemMeta(materialMeta);
         }
-        inventory.setItem(12, materialItem);
+        if (materialSlot >= 0 && materialSlot < inventory.getSize()) inventory.setItem(materialSlot, materialItem);
 
-        // Số lượng (CHEST) ở slot 13
-        ItemStack amountItem = new ItemStack(Material.CHEST);
+        // Amount
+        int amountSlot = plugin.getConfigManager().getItemSlot("gui.create-order.amount-item", 13);
+        Material amountMat = plugin.getConfigManager().getItemMaterial("gui.create-order.amount-item", Material.CHEST);
+        String amountName = plugin.getConfigManager().getItemDisplayName("gui.create-order.amount-item", "&6Set Amount");
+        List<String> amountLore = plugin.getConfigManager().getItemLore("gui.create-order.amount-item");
+        ItemStack amountItem = new ItemStack(amountMat);
         ItemMeta amountMeta = amountItem.getItemMeta();
         if (amountMeta != null) {
-            amountMeta.setDisplayName(ColorUtils.colorize("&6Set Amount"));
+            amountMeta.setDisplayName(amountName.replace("%amount%", String.valueOf(data.getAmount())));
             List<String> lore = new ArrayList<>();
-            lore.add(ColorUtils.colorize("&7Current: &a" + data.getAmount()));
-            lore.add(ColorUtils.colorize("&7Click to set amount"));
+            if (amountLore != null && !amountLore.isEmpty()) {
+                for (String line : amountLore) {
+                    lore.add(ColorUtils.colorize(line.replace("%amount%", String.valueOf(data.getAmount()))));
+                }
+            }
             amountMeta.setLore(lore);
             amountItem.setItemMeta(amountMeta);
         }
-        inventory.setItem(13, amountItem);
+        if (amountSlot >= 0 && amountSlot < inventory.getSize()) inventory.setItem(amountSlot, amountItem);
 
-        // Giá tiền (SUNFLOWER) ở slot 14
-        ItemStack priceItem = new ItemStack(Material.SUNFLOWER);
+        // Price
+        int priceSlot = plugin.getConfigManager().getItemSlot("gui.create-order.price-item", 14);
+        Material priceMat = plugin.getConfigManager().getItemMaterial("gui.create-order.price-item", Material.SUNFLOWER);
+        String priceName = plugin.getConfigManager().getItemDisplayName("gui.create-order.price-item", "&6Set Price Per Item");
+        List<String> priceLore = plugin.getConfigManager().getItemLore("gui.create-order.price-item");
+        ItemStack priceItem = new ItemStack(priceMat);
         ItemMeta priceMeta = priceItem.getItemMeta();
         if (priceMeta != null) {
-            priceMeta.setDisplayName(ColorUtils.colorize("&6Set Price Per Item"));
+            priceMeta.setDisplayName(priceName);
             List<String> lore = new ArrayList<>();
-            if (data.getCurrencyType() == CurrencyType.VAULT) {
-                lore.add(ColorUtils.colorize("&7Current: &a$" + String.format("%.2f", data.getPricePerItem())));
-            } else {
-                lore.add(ColorUtils.colorize("&7Current: &a" + (int)data.getPricePerItem() + " Points"));
+            String priceString = (data.getCurrencyType() == CurrencyType.VAULT)
+                    ? "$" + String.format("%.2f", data.getPricePerItem())
+                    : ((int) data.getPricePerItem()) + " Points";
+            if (priceLore != null && !priceLore.isEmpty()) {
+                for (String line : priceLore) {
+                    lore.add(ColorUtils.colorize(line.replace("%price%", priceString)));
+                }
             }
-            lore.add(ColorUtils.colorize("&7Click to set price"));
             priceMeta.setLore(lore);
             priceItem.setItemMeta(priceMeta);
         }
-        inventory.setItem(14, priceItem);
+        if (priceSlot >= 0 && priceSlot < inventory.getSize()) inventory.setItem(priceSlot, priceItem);
 
-        // Nút xác nhận (LIME_STAINED_GLASS_PANE) ở slot 16
-        ItemStack confirmItem = new ItemStack(Material.LIME_STAINED_GLASS_PANE);
+        // Confirm
+        int confirmSlot = plugin.getConfigManager().getItemSlot("gui.create-order.confirm-item", 16);
+        Material confirmMat = plugin.getConfigManager().getItemMaterial("gui.create-order.confirm-item", Material.LIME_STAINED_GLASS_PANE);
+        String confirmName = plugin.getConfigManager().getItemDisplayName("gui.create-order.confirm-item", "&aConfirm");
+        List<String> confirmLore = plugin.getConfigManager().getItemLore("gui.create-order.confirm-item");
+        ItemStack confirmItem = new ItemStack(confirmMat);
         ItemMeta confirmMeta = confirmItem.getItemMeta();
         if (confirmMeta != null) {
-            confirmMeta.setDisplayName(ColorUtils.colorize("&aConfirm"));
+            confirmMeta.setDisplayName(confirmName);
             List<String> lore = new ArrayList<>();
-            lore.add(ColorUtils.colorize("&7Material: &a" + data.getMaterial().name()));
-            lore.add(ColorUtils.colorize("&7Amount: &a" + data.getAmount()));
+            String matName = data.getMaterial().name();
+            String amountString = String.valueOf(data.getAmount());
+            String priceString;
+            String totalString;
+            String currencyName;
             if (data.getCurrencyType() == CurrencyType.VAULT) {
-                lore.add(ColorUtils.colorize("&7Price per item: &a$" + String.format("%.2f", data.getPricePerItem())));
-                lore.add(ColorUtils.colorize("&7Total cost: &a$" + String.format("%.2f", data.getAmount() * data.getPricePerItem())));
-                lore.add(ColorUtils.colorize("&7Currency: &eVault Money"));
+                priceString = "$" + String.format("%.2f", data.getPricePerItem());
+                totalString = "$" + String.format("%.2f", data.getAmount() * data.getPricePerItem());
+                currencyName = "Vault Money";
             } else {
-                lore.add(ColorUtils.colorize("&7Price per item: &a" + (int)data.getPricePerItem() + " Points"));
-                lore.add(ColorUtils.colorize("&7Total cost: &a" + (int)(data.getAmount() * data.getPricePerItem()) + " Points"));
-                lore.add(ColorUtils.colorize("&7Currency: &ePlayerPoints"));
+                priceString = ((int) data.getPricePerItem()) + " Points";
+                totalString = ((int) (data.getAmount() * data.getPricePerItem())) + " Points";
+                currencyName = "PlayerPoints";
+            }
+            if (confirmLore != null && !confirmLore.isEmpty()) {
+                for (String line : confirmLore) {
+                    String processed = line
+                            .replace("%material%", matName)
+                            .replace("%amount%", amountString)
+                            .replace("%price%", priceString)
+                            .replace("%total%", totalString)
+                            .replace("%currency%", currencyName);
+                    lore.add(ColorUtils.colorize(processed));
+                }
+            } else {
+                lore.add(ColorUtils.colorize("&7Material: &a" + matName));
+                lore.add(ColorUtils.colorize("&7Amount: &a" + amountString));
+                lore.add(ColorUtils.colorize("&7Price per item: &a" + priceString));
+                lore.add(ColorUtils.colorize("&7Total cost: &a" + totalString));
+                lore.add(ColorUtils.colorize("&7Currency: &e" + currencyName));
             }
             confirmMeta.setLore(lore);
             confirmItem.setItemMeta(confirmMeta);
         }
-        inventory.setItem(16, confirmItem);
+        if (confirmSlot >= 0 && confirmSlot < inventory.getSize()) inventory.setItem(confirmSlot, confirmItem);
 
-        // Nút chọn loại tiền (GOLD_INGOT) ở slot 22
-        ItemStack currencyItem = new ItemStack(data.getCurrencyType() == CurrencyType.VAULT ? Material.GOLD_INGOT : Material.EXPERIENCE_BOTTLE);
+        // Currency toggle
+        int currencySlot = plugin.getConfigManager().getCreateOrderCurrencyItemSlot();
+        Material currencyMat = plugin.getConfigManager().getCreateOrderCurrencyItemMaterial();
+        Material configCurrencyMat = plugin.getConfigManager().getItemMaterial("gui.create-order.currency-item", Material.GOLD_INGOT);
+        if (currencyMat == configCurrencyMat) {
+            currencyMat = (data.getCurrencyType() == CurrencyType.VAULT) ? Material.GOLD_INGOT : Material.EXPERIENCE_BOTTLE;
+        }
+        String currencyNameDisplay = plugin.getConfigManager().getCreateOrderCurrencyItemDisplayName();
+        List<String> currencyLoreCfg = plugin.getConfigManager().getCreateOrderCurrencyItemLore();
+        ItemStack currencyItem = new ItemStack(currencyMat);
         ItemMeta currencyMeta = currencyItem.getItemMeta();
         if (currencyMeta != null) {
-            currencyMeta.setDisplayName(ColorUtils.colorize("&6Currency Type"));
+            String curName = ColorUtils.colorize(
+                    currencyNameDisplay.replace("%currency%", data.getCurrencyType() == CurrencyType.VAULT ? "Vault Money" : "PlayerPoints"));
+            currencyMeta.setDisplayName(curName);
+
             List<String> lore = new ArrayList<>();
-            lore.add(ColorUtils.colorize("&7Current: &a" + (data.getCurrencyType() == CurrencyType.VAULT ? "Vault Money" : "PlayerPoints")));
-            lore.add(ColorUtils.colorize("&7Click to switch currency"));
-            lore.add("");
-            if (plugin.getVaultManager().isEnabled()) {
-                lore.add(ColorUtils.colorize("&a✓ &7Vault Money Available"));
+            if (currencyLoreCfg != null && !currencyLoreCfg.isEmpty()) {
+                for (String line : currencyLoreCfg) {
+                    String processed = line
+                            .replace("%currency%", data.getCurrencyType() == CurrencyType.VAULT ? "Vault Money" : "PlayerPoints")
+                            .replace("%vault_status%", plugin.getVaultManager().isEnabled() ? ColorUtils.colorize("&aAvailable") : ColorUtils.colorize("&cUnavailable"))
+                            .replace("%points_status%", plugin.getPlayerPointsManager().isEnabled() ? ColorUtils.colorize("&aAvailable") : ColorUtils.colorize("&cUnavailable"));
+                    lore.add(ColorUtils.colorize(processed));
+                }
             } else {
-                lore.add(ColorUtils.colorize("&c✗ &7Vault Money Unavailable"));
-            }
-            if (plugin.getPlayerPointsManager().isEnabled()) {
-                lore.add(ColorUtils.colorize("&a✓ &7PlayerPoints Available"));
-            } else {
-                lore.add(ColorUtils.colorize("&c✗ &7PlayerPoints Unavailable"));
+                lore.add(ColorUtils.colorize("&7Current: &a" + (data.getCurrencyType() == CurrencyType.VAULT ? "Vault Money" : "PlayerPoints")));
+                lore.add(ColorUtils.colorize("&7Click to switch currency"));
             }
             currencyMeta.setLore(lore);
             currencyItem.setItemMeta(currencyMeta);
         }
-        inventory.setItem(22, currencyItem);
+        if (currencySlot >= 0 && currencySlot < inventory.getSize()) inventory.setItem(currencySlot, currencyItem);
     }
 
     public static CreateOrderData getCreateData(Player player) {
