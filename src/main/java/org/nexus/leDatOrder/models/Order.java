@@ -4,8 +4,12 @@ import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 import org.nexus.leDatOrder.enums.CurrencyType;
 
-import java.util.UUID;
+import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.UUID;
 
 public class Order {
     private UUID id;
@@ -21,6 +25,7 @@ public class Order {
     private OrderType type;
     private int collectedAmount;
     private CurrencyType currencyType;
+    private final Map<UUID, Integer> contributions;
 
     // Constructor cũ (để tương thích ngược)
     public Order(UUID playerUUID, String playerName, Material material, double pricePerItem, int requiredAmount) {
@@ -37,6 +42,7 @@ public class Order {
         this.type = getOrderTypeFromMaterial(material);
         this.collectedAmount = 0;
         this.currencyType = CurrencyType.VAULT; // Mặc định là Vault
+        this.contributions = new HashMap<>();
     }
 
     // Constructor mới với CurrencyType
@@ -54,10 +60,15 @@ public class Order {
         this.type = getOrderTypeFromMaterial(material);
         this.collectedAmount = 0;
         this.currencyType = currencyType;
+        this.contributions = new HashMap<>();
     }
 
     public UUID getId() {
         return id;
+    }
+
+    public void setId(UUID id) {
+        this.id = id;
     }
 
     public UUID getPlayerUUID() {
@@ -131,6 +142,49 @@ public class Order {
 
     public void setCurrencyType(CurrencyType currencyType) {
         this.currencyType = currencyType;
+    }
+
+    public Map<UUID, Integer> getContributions() {
+        return Collections.unmodifiableMap(contributions);
+    }
+
+    public void addContribution(UUID contributorId, int amount) {
+        if (amount <= 0) {
+            return;
+        }
+        contributions.merge(contributorId, amount, Integer::sum);
+    }
+
+    public int getContribution(UUID contributorId) {
+        return contributions.getOrDefault(contributorId, 0);
+    }
+
+    public void clearContributions() {
+        contributions.clear();
+    }
+
+    public void consumeContributions(int amount) {
+        if (amount <= 0 || contributions.isEmpty()) {
+            return;
+        }
+
+        int remaining = amount;
+        Iterator<Map.Entry<UUID, Integer>> iterator = contributions.entrySet().iterator();
+        while (iterator.hasNext() && remaining > 0) {
+            Map.Entry<UUID, Integer> entry = iterator.next();
+            int contributed = entry.getValue();
+            if (contributed <= remaining) {
+                remaining -= contributed;
+                iterator.remove();
+            } else {
+                entry.setValue(contributed - remaining);
+                remaining = 0;
+            }
+        }
+
+        if (remaining > 0) {
+            contributions.clear();
+        }
     }
 
     public boolean isCompleted() {

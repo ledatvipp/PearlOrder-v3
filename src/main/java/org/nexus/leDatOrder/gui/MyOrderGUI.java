@@ -118,20 +118,11 @@ public class MyOrderGUI {
             }
             List<String> lore = new ArrayList<>();
             // Prepare values
-            String priceString;
-            if (order.getCurrencyType() == org.nexus.leDatOrder.enums.CurrencyType.VAULT) {
-                priceString = "$" + String.format("%.2f", order.getPricePerItem());
-            } else {
-                priceString = ((int) order.getPricePerItem()) + " Points";
-            }
+            String priceString = plugin.getConfigManager().formatCurrencyAmount(order.getPricePerItem(), order.getCurrencyType());
             double totalCost = order.getPricePerItem() * order.getRequiredAmount();
-            String totalString;
-            if (order.getCurrencyType() == org.nexus.leDatOrder.enums.CurrencyType.VAULT) {
-                totalString = "$" + String.format("%.2f", totalCost);
-            } else {
-                totalString = ((int) totalCost) + " Points";
-            }
-            String currencyName = order.getCurrencyType() == org.nexus.leDatOrder.enums.CurrencyType.VAULT ? "Vault" : "Points";
+            String totalString = plugin.getConfigManager().formatCurrencyAmount(totalCost, order.getCurrencyType());
+            String currencyName = plugin.getConfigManager().getCurrencyDisplayName(order.getCurrencyType());
+            String paidString = plugin.getConfigManager().formatCurrencyAmount(order.getPaidAmount(), order.getCurrencyType());
             for (String line : configLore) {
                 String processed = line
                         .replace("%player%", order.getPlayerName())
@@ -141,7 +132,7 @@ public class MyOrderGUI {
                         .replace("%currency%", currencyName)
                         .replace("%received%", String.valueOf(order.getReceivedAmount()))
                         .replace("%required%", String.valueOf(order.getRequiredAmount()))
-                        .replace("%paid%", (order.getCurrencyType() == org.nexus.leDatOrder.enums.CurrencyType.VAULT ? "$" + String.format("%.2f", order.getPaidAmount()) : String.valueOf((int) order.getPaidAmount())))
+                        .replace("%paid%", paidString)
                         .replace("%total%", totalString);
                 lore.add(ColorUtils.colorize(processed));
             }

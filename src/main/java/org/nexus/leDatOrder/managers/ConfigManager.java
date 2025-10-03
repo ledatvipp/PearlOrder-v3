@@ -5,6 +5,7 @@ import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.nexus.leDatOrder.LeDatOrder;
+import org.nexus.leDatOrder.enums.CurrencyType;
 import org.nexus.leDatOrder.utils.ColorUtils;
 
 import java.io.File;
@@ -99,7 +100,29 @@ public class ConfigManager {
 
     private void setDefaultMessages() {
         String basePath = "messages";
-        
+
+        if (!config.contains(basePath + ".command.player-only")) {
+            config.set(basePath + ".command.player-only", "&cThis command can only be used by players.");
+        }
+        if (!config.contains(basePath + ".command.no-permission")) {
+            config.set(basePath + ".command.no-permission", "&cYou don't have permission to use this command.");
+        }
+        if (!config.contains(basePath + ".command.reload.success")) {
+            config.set(basePath + ".command.reload.success", "&aConfig reloaded.");
+        }
+        if (!config.contains(basePath + ".command.help.header")) {
+            config.set(basePath + ".command.help.header", "&6===== LeDatOrder Help =====");
+        }
+        if (!config.contains(basePath + ".command.help.order")) {
+            config.set(basePath + ".command.help.order", "&e/order &7- Open the main order GUI");
+        }
+        if (!config.contains(basePath + ".command.help.my")) {
+            config.set(basePath + ".command.help.my", "&e/order my &7- Open your orders GUI");
+        }
+        if (!config.contains(basePath + ".command.help.reload")) {
+            config.set(basePath + ".command.help.reload", "&e/order reload &7- Reload the config");
+        }
+
         // Order creation messages
         if (!config.contains(basePath + ".order.creation.success")) {
             config.set(basePath + ".order.creation.success", "&aOrder created successfully! (&e%current%&a/&e%max%&a)");
@@ -123,15 +146,15 @@ public class ConfigManager {
             config.set(basePath + ".order.creation.payment-failed", "&cPayment failed! Please try again.");
         }
         if (!config.contains(basePath + ".order.creation.fee-charged-vault")) {
-            config.set(basePath + ".order.creation.fee-charged-vault", "&aYou have been charged &e$%fee% &afor creating this order.");
+            config.set(basePath + ".order.creation.fee-charged-vault", "&aYou have been charged &e%fee% &afor creating this order.");
         }
         if (!config.contains(basePath + ".order.creation.fee-charged-points")) {
-            config.set(basePath + ".order.creation.fee-charged-points", "&aYou have been charged &e%fee% Points &afor creating this order.");
+            config.set(basePath + ".order.creation.fee-charged-points", "&aYou have been charged &e%fee% &afor creating this order.");
         }
         if (!config.contains(basePath + ".order.creation.payment-success")) {
             config.set(basePath + ".order.creation.payment-success", "&aYou have paid &e%amount% &afor this order.");
         }
-        
+
         // Currency messages
         if (!config.contains(basePath + ".currency.vault-unavailable")) {
             config.set(basePath + ".currency.vault-unavailable", "&cVault is not available!");
@@ -166,7 +189,7 @@ public class ConfigManager {
             config.set(basePath + ".input.amount-set", "&aAmount set to &e%amount%");
         }
         if (!config.contains(basePath + ".input.price-set")) {
-            config.set(basePath + ".input.price-set", "&aPrice set to &e$%price%");
+            config.set(basePath + ".input.price-set", "&aPrice set to &e%price%");
         }
         if (!config.contains(basePath + ".input.material-set")) {
             config.set(basePath + ".input.material-set", "&aMaterial set to &e%material%");
@@ -180,7 +203,13 @@ public class ConfigManager {
         if (!config.contains(basePath + ".input.invalid-number")) {
             config.set(basePath + ".input.invalid-number", "&cInvalid number format. Please enter a valid number.");
         }
-        
+        if (!config.contains(basePath + ".input.amount-invalid")) {
+            config.set(basePath + ".input.amount-invalid", "&cAmount must be greater than 0.");
+        }
+        if (!config.contains(basePath + ".input.price-invalid")) {
+            config.set(basePath + ".input.price-invalid", "&cPrice must be greater than 0.");
+        }
+
         // Sort and filter messages
         if (!config.contains(basePath + ".sort.changed")) {
             config.set(basePath + ".sort.changed", "&aSắp xếp theo: &e%type%");
@@ -188,7 +217,11 @@ public class ConfigManager {
         if (!config.contains(basePath + ".filter.changed")) {
             config.set(basePath + ".filter.changed", "&aLọc theo: &e%type%");
         }
-        
+
+        if (!config.contains(basePath + ".material-select.selected")) {
+            config.set(basePath + ".material-select.selected", "&aSelected material: &e%material%");
+        }
+
         // Delivery messages
         if (!config.contains(basePath + ".delivery.self-delivery")) {
             config.set(basePath + ".delivery.self-delivery", "&cBạn không thể giao đồ cho chính mình!");
@@ -198,6 +231,58 @@ public class ConfigManager {
         }
         if (!config.contains(basePath + ".delivery.payment-received")) {
             config.set(basePath + ".delivery.payment-received", "&aYou received %amount% for delivering items!");
+        }
+        if (!config.contains(basePath + ".delivery.owner-update")) {
+            config.set(basePath + ".delivery.owner-update", "&a%player% đã giao &e%amount% %material%&a. Đã chi: &e%payment%&a.");
+        }
+        if (!config.contains(basePath + ".delivery.order-filled")) {
+            config.set(basePath + ".delivery.order-filled", "&aĐơn hàng đã nhận đủ số lượng yêu cầu.");
+        }
+        if (!config.contains(basePath + ".delivery.owner-complete")) {
+            config.set(basePath + ".delivery.owner-complete", "&aĐơn hàng %material% của bạn đã hoàn thành! Hãy vào /order để nhận.");
+        }
+        if (!config.contains(basePath + ".delivery.excess-returned")) {
+            config.set(basePath + ".delivery.excess-returned", "&aĐã trả lại &e%amount% %material%&a vượt quá số lượng yêu cầu.");
+        }
+
+        if (!config.contains(basePath + ".order.cancel.cannot")) {
+            config.set(basePath + ".order.cancel.cannot", "&cKhông thể hủy đơn hàng này. Có thể đơn đã hoàn thành hoặc không tồn tại.");
+        }
+        if (!config.contains(basePath + ".order.cancel.refund")) {
+            config.set(basePath + ".order.cancel.refund", "&aĐã hoàn trả &e%amount% &avề tài khoản của bạn.");
+        }
+        if (!config.contains(basePath + ".order.cancel.items-returned")) {
+            config.set(basePath + ".order.cancel.items-returned", "&aĐã trả lại &e%amount% %material%&a cho những người đóng góp.");
+        }
+        if (!config.contains(basePath + ".order.cancel.items-missing")) {
+            config.set(basePath + ".order.cancel.items-missing", "&eCòn &6%amount% %material%&e không thể hoàn trả do thiếu dữ liệu đóng góp.");
+        }
+        if (!config.contains(basePath + ".order.cancel.success")) {
+            config.set(basePath + ".order.cancel.success", "&aOrder has been cancelled.");
+        }
+        if (!config.contains(basePath + ".order.cancel.contributor-refund")) {
+            config.set(basePath + ".order.cancel.contributor-refund", "&aBạn đã nhận lại &e%amount% %material%&a từ một đơn hàng bị hủy.");
+        }
+
+        if (!config.contains(basePath + ".order.collect.none")) {
+            config.set(basePath + ".order.collect.none", "&cNo items available to collect.");
+        }
+        if (!config.contains(basePath + ".order.collect.partial")) {
+            config.set(basePath + ".order.collect.partial", "&aĐã nhận &e%collected% %material%&a. Phần còn lại đã rơi xuống đất do túi đồ đầy.");
+        }
+        if (!config.contains(basePath + ".order.collect.success")) {
+            config.set(basePath + ".order.collect.success", "&aĐã nhận &e%amount% %material%!");
+        }
+        if (!config.contains(basePath + ".order.collect.completed")) {
+            config.set(basePath + ".order.collect.completed", "&aĐơn hàng đã hoàn thành và được xóa khỏi hệ thống.");
+        }
+
+        if (!config.contains(basePath + ".order.completed-owner")) {
+            config.set(basePath + ".order.completed-owner", "&aĐơn hàng %material% đã hoàn thành và được xóa khỏi hệ thống!");
+        }
+
+        if (!config.contains(basePath + ".refund.received")) {
+            config.set(basePath + ".refund.received", "&aBạn đã nhận lại &e%amount% &avật phẩm từ các đơn hàng bị hủy.");
         }
     }
 
@@ -703,8 +788,19 @@ public class ConfigManager {
         }
         return lore;
     }
-    
+
     public int getOrderDeliveryBackItemSlot() {
         return getItemSlot("gui.order-delivery.back-item", 40);
+    }
+
+    public String formatCurrencyAmount(double amount, CurrencyType currencyType) {
+        if (currencyType == CurrencyType.VAULT) {
+            return "$" + String.format("%.2f", amount);
+        }
+        return String.valueOf((int) Math.round(amount)) + " Points";
+    }
+
+    public String getCurrencyDisplayName(CurrencyType currencyType) {
+        return currencyType == CurrencyType.VAULT ? "Vault Money" : "PlayerPoints";
     }
 }

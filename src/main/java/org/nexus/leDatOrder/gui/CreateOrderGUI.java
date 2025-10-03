@@ -225,12 +225,12 @@ public class CreateOrderGUI {
 
         // Kiểm tra số lượng và giá tiền
         if (data.getAmount() <= 0) {
-            player.sendMessage(ColorUtils.colorize("&cAmount must be greater than 0."));
+            player.sendMessage(plugin.getConfigManager().getMessage("order.creation.amount-invalid"));
             return;
         }
 
         if (data.getPricePerItem() <= 0) {
-            player.sendMessage(ColorUtils.colorize("&cPrice must be greater than 0."));
+            player.sendMessage(plugin.getConfigManager().getMessage("order.creation.price-invalid"));
             return;
         }
         
@@ -248,7 +248,11 @@ public class CreateOrderGUI {
         // Lấy số lượng order hiện tại của người chơi
         List<Order> playerOrders = plugin.getOrderManager().getOrdersByPlayer(player.getUniqueId());
         if (playerOrders.size() >= maxOrders) {
-            player.sendMessage(ColorUtils.colorize("&cBạn đã đạt giới hạn số lượng order (&e" + maxOrders + "&c). Hãy hoàn thành hoặc hủy một số order hiện tại."));
+            player.sendMessage(plugin.getConfigManager().getMessage(
+                    "order.creation.limit-reached",
+                    "%max%",
+                    String.valueOf(maxOrders)
+            ));
             return;
         }
 
@@ -261,52 +265,56 @@ public class CreateOrderGUI {
         if (data.getCurrencyType() == CurrencyType.VAULT) {
             // Sử dụng Vault
             if (!plugin.getVaultManager().isEnabled()) {
-                player.sendMessage(ColorUtils.colorize("&cVault is not available!"));
+                player.sendMessage(plugin.getConfigManager().getMessage("currency.vault-unavailable"));
                 return;
             }
-            
+
             double totalCost = data.getAmount() * data.getPricePerItem();
-            
+
             if (!plugin.getVaultManager().has(player, totalCost + fee)) {
-                player.sendMessage(ColorUtils.colorize("&cYou don't have enough money to create this order. You need $" + String.format("%.2f", totalCost + fee)));
+                String needed = plugin.getConfigManager().formatCurrencyAmount(totalCost + fee, CurrencyType.VAULT);
+                player.sendMessage(plugin.getConfigManager().getMessage("order.creation.insufficient-money", "%amount%", needed));
                 return;
             }
-            
+
             paymentSuccess = plugin.getVaultManager().withdraw(player, totalCost + fee);
-            currencyName = "$" + String.format("%.2f", totalCost);
-            
+            currencyName = plugin.getConfigManager().formatCurrencyAmount(totalCost, CurrencyType.VAULT);
+
         } else {
             // Sử dụng PlayerPoints
             if (!plugin.getPlayerPointsManager().isEnabled()) {
-                player.sendMessage(ColorUtils.colorize("&cPlayerPoints is not available!"));
+                player.sendMessage(plugin.getConfigManager().getMessage("currency.playerpoints-unavailable"));
                 return;
             }
-            
-            int totalCost = (int)(data.getAmount() * data.getPricePerItem());
-            int totalFee = (int)fee;
-            
+
+            int totalCost = (int) Math.round(data.getAmount() * data.getPricePerItem());
+            int totalFee = (int) Math.round(fee);
+
             if (!plugin.getPlayerPointsManager().has(player, totalCost + totalFee)) {
-                player.sendMessage(ColorUtils.colorize("&cYou don't have enough points to create this order. You need " + (totalCost + totalFee) + " points"));
+                String needed = plugin.getConfigManager().formatCurrencyAmount(totalCost + totalFee, CurrencyType.PLAYERPOINTS);
+                player.sendMessage(plugin.getConfigManager().getMessage("order.creation.insufficient-points", "%amount%", needed));
                 return;
             }
-            
+
             paymentSuccess = plugin.getPlayerPointsManager().withdraw(player, totalCost + totalFee);
-            currencyName = totalCost + " Points";
+            currencyName = plugin.getConfigManager().formatCurrencyAmount(totalCost, CurrencyType.PLAYERPOINTS);
         }
-        
+
         if (!paymentSuccess) {
-            player.sendMessage(ColorUtils.colorize("&cPayment failed! Please try again."));
+            player.sendMessage(plugin.getConfigManager().getMessage("order.creation.payment-failed"));
             return;
         }
 
         if (fee > 0) {
             if (data.getCurrencyType() == CurrencyType.VAULT) {
-                player.sendMessage(ColorUtils.colorize("&aYou have been charged &e$" + String.format("%.2f", fee) + " &afor creating this order."));
+                String feeString = plugin.getConfigManager().formatCurrencyAmount(fee, CurrencyType.VAULT);
+                player.sendMessage(plugin.getConfigManager().getMessage("order.creation.fee-charged-vault", "%fee%", feeString));
             } else {
-                player.sendMessage(ColorUtils.colorize("&aYou have been charged &e" + (int)fee + " Points &afor creating this order."));
+                String feeString = plugin.getConfigManager().formatCurrencyAmount(fee, CurrencyType.PLAYERPOINTS);
+                player.sendMessage(plugin.getConfigManager().getMessage("order.creation.fee-charged-points", "%fee%", feeString));
             }
         }
-        player.sendMessage(ColorUtils.colorize("&aYou have paid &e" + currencyName + " &afor this order."));
+        player.sendMessage(plugin.getConfigManager().getMessage("order.creation.payment-success", "%amount%", currencyName));
 
         // Tạo order mới - SỬA DỤNG ENUM ĐÚNG
         Order order = new Order(
@@ -322,7 +330,13 @@ public class CreateOrderGUI {
         plugin.getOrderManager().addOrder(order);
 
         // Thông báo
-        player.sendMessage(ColorUtils.colorize("&aOrder created successfully! (&e" + (playerOrders.size() + 1) + "&a/&e" + maxOrders + "&a)"));
+        player.sendMessage(plugin.getConfigManager().getMessage(
+                "order.creation.success",
+                "%current%",
+                String.valueOf(playerOrders.size() + 1),
+                "%max%",
+                String.valueOf(maxOrders)
+        ));
 
         // Mở lại GUI My Order
         new MyOrderGUI(plugin, player).open();
