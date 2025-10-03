@@ -7,7 +7,6 @@ import org.bukkit.entity.Player;
 import org.nexus.leDatOrder.LeDatOrder;
 import org.nexus.leDatOrder.gui.MyOrderGUI;
 import org.nexus.leDatOrder.gui.OrderGUI;
-import org.nexus.leDatOrder.utils.ColorUtils;
 
 public class OrderCommand implements CommandExecutor {
     private final LeDatOrder plugin;
@@ -19,14 +18,14 @@ public class OrderCommand implements CommandExecutor {
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (!(sender instanceof Player)) {
-            sender.sendMessage(ColorUtils.colorize("&cThis command can only be used by players."));
+            sender.sendMessage(plugin.getConfigManager().getMessage("command.player-only"));
             return true;
         }
 
         Player player = (Player) sender;
 
         if (!player.hasPermission("ledatorder.use")) {
-            player.sendMessage(ColorUtils.colorize("&cYou don't have permission to use this command."));
+            player.sendMessage(plugin.getConfigManager().getMessage("command.no-permission"));
             return true;
         }
 
@@ -45,21 +44,21 @@ public class OrderCommand implements CommandExecutor {
         // Các lệnh admin
         if (args[0].equalsIgnoreCase("reload")) {
             if (!player.hasPermission("ledatorder.admin")) {
-                player.sendMessage(ColorUtils.colorize("&cYou don't have permission to use this command."));
+                player.sendMessage(plugin.getConfigManager().getMessage("command.no-permission"));
                 return true;
             }
 
             plugin.getConfigManager().loadConfig();
-            player.sendMessage(ColorUtils.colorize("&aConfig reloaded."));
+            player.sendMessage(plugin.getConfigManager().getMessage("command.reload.success"));
             return true;
         }
 
         // Hiển thị trợ giúp
-        player.sendMessage(ColorUtils.colorize("&6===== LeDatOrder Help ====="));
-        player.sendMessage(ColorUtils.colorize("&e/order &7- Open the main order GUI"));
-        player.sendMessage(ColorUtils.colorize("&e/order my &7- Open your orders GUI"));
+        player.sendMessage(plugin.getConfigManager().getMessage("command.help.header"));
+        player.sendMessage(plugin.getConfigManager().getMessage("command.help.order"));
+        player.sendMessage(plugin.getConfigManager().getMessage("command.help.my"));
         if (player.hasPermission("ledatorder.admin")) {
-            player.sendMessage(ColorUtils.colorize("&e/order reload &7- Reload the config"));
+            player.sendMessage(plugin.getConfigManager().getMessage("command.help.reload"));
         }
 
         return true;

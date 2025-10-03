@@ -5,11 +5,14 @@ import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 import org.nexus.leDatOrder.LeDatOrder;
 import org.nexus.leDatOrder.models.Order;
 import org.nexus.leDatOrder.utils.ColorUtils;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -30,12 +33,67 @@ public class OrderDeliveryGUI {
 
     public void open() {
         createInventory();
+        updateInventory();
         player.openInventory(inventory);
     }
 
     private void createInventory() {
-        String title = ColorUtils.colorize("&6Order -> " + order.getPlayerName());
-        inventory = Bukkit.createInventory(null, 45, title);
+        String title = plugin.getConfigManager().getOrderDeliveryGuiTitle()
+                .replace("%player%", order.getPlayerName());
+        int size = plugin.getConfigManager().getOrderDeliveryGuiSize();
+        inventory = Bukkit.createInventory(null, size, title);
+    }
+
+    private void updateInventory() {
+        inventory.clear();
+
+        // Order info item
+        ItemStack infoItem = new ItemStack(order.getMaterial());
+        ItemMeta infoMeta = infoItem.getItemMeta();
+        if (infoMeta != null) {
+            String displayName = plugin.getConfigManager().getOrderDeliveryOrderInfoDisplayName()
+                    .replace("%player%", order.getPlayerName());
+            infoMeta.setDisplayName(ColorUtils.colorize(displayName));
+
+            List<String> lore = new ArrayList<>();
+            for (String line : plugin.getConfigManager().getOrderDeliveryOrderInfoLore()) {
+                String priceString = plugin.getConfigManager().formatCurrencyAmount(order.getPricePerItem(), order.getCurrencyType());
+                String totalString = plugin.getConfigManager().formatCurrencyAmount(order.getRequiredAmount() * order.getPricePerItem(), order.getCurrencyType());
+                String processed = line
+                        .replace("%player%", order.getPlayerName())
+                        .replace("%material%", order.getMaterial().name())
+                        .replace("%required%", String.valueOf(order.getRequiredAmount()))
+                        .replace("%received%", String.valueOf(order.getReceivedAmount()))
+                        .replace("%remaining%", String.valueOf(Math.max(0, order.getRequiredAmount() - order.getReceivedAmount())))
+                        .replace("%price%", priceString)
+                        .replace("%total%", totalString)
+                        .replace("%currency%", plugin.getConfigManager().getCurrencyDisplayName(order.getCurrencyType()));
+                lore.add(ColorUtils.colorize(processed));
+            }
+            infoMeta.setLore(lore);
+            infoItem.setItemMeta(infoMeta);
+        }
+        int infoSlot = plugin.getConfigManager().getOrderDeliveryOrderInfoSlot();
+        if (infoSlot >= 0 && infoSlot < inventory.getSize()) {
+            inventory.setItem(infoSlot, infoItem);
+        }
+
+        // Back button
+        ItemStack backItem = new ItemStack(plugin.getConfigManager().getOrderDeliveryBackItemMaterial());
+        ItemMeta backMeta = backItem.getItemMeta();
+        if (backMeta != null) {
+            backMeta.setDisplayName(ColorUtils.colorize(plugin.getConfigManager().getOrderDeliveryBackItemDisplayName()));
+            List<String> lore = new ArrayList<>();
+            for (String line : plugin.getConfigManager().getOrderDeliveryBackItemLore()) {
+                lore.add(ColorUtils.colorize(line));
+            }
+            backMeta.setLore(lore);
+            backItem.setItemMeta(backMeta);
+        }
+        int backSlot = plugin.getConfigManager().getOrderDeliveryBackItemSlot();
+        if (backSlot >= 0 && backSlot < inventory.getSize()) {
+            inventory.setItem(backSlot, backItem);
+        }
     }
 
     public static Order getOrderByPlayer(Player player) {
@@ -86,46 +144,49 @@ public class OrderDeliveryGUI {
             actualDelivered = remainingNeeded;
         }
 
+        inventory.clear();
+
         // Items sẽ được lưu trữ trong order để người tạo order có thể collect sau
         // Không cần gửi trực tiếp cho người tạo order nữa
 
-        // Thông báo cho người tạo order (nếu đang online)
-        Player orderOwner = plugin.getServer().getPlayer(order.getPlayerUUID());
-        if (orderOwner != null && orderOwner.isOnline()) {
-            final String deliveryMessage = "&a" + player.getName() + " đã giao &e" + actualDelivered + " &a" +
-                    order.getMaterial().name() + " cho đơn hàng của bạn! Vào /order để nhận items.";
-            final Player finalOrderOwner = orderOwner;
-
-            plugin.getFoliaLib().getScheduler().runAtEntity(orderOwner, (task) -> {
-                finalOrderOwner.sendMessage(ColorUtils.colorize(deliveryMessage));
-            });
-        }
-
         // Cập nhật order và trả tiền cho người chơi
         double paymentAmount = order.getPricePerItem() * actualDelivered;
-        plugin.getOrderManager().deliverItems(player, order, actualDelivered);
+        if (actualDelivered > 0) {
+            plugin.getOrderManager().deliverItems(player, order, actualDelivered);
+        }
 
         // Trả tiền cho người giao hàng dựa trên loại tiền tệ
-        if (order.getCurrencyType() == org.nexus.leDatOrder.enums.CurrencyType.VAULT) {
-            if (plugin.getVaultManager().isEnabled()) {
-                plugin.getVaultManager().deposit(player, paymentAmount);
-                player.sendMessage(ColorUtils.colorize("&aĐã nhận &e$" + String.format("%.2f", paymentAmount) + " &acho việc giao hàng!"));
-            }
-        } else {
-            if (plugin.getPlayerPointsManager().isEnabled()) {
-                plugin.getPlayerPointsManager().deposit(player, (int)paymentAmount);
-                player.sendMessage(ColorUtils.colorize("&aĐã nhận &e" + (int)paymentAmount + " Points &acho việc giao hàng!"));
+        if (paymentAmount > 0) {
+            if (order.getCurrencyType() == org.nexus.leDatOrder.enums.CurrencyType.VAULT) {
+                if (plugin.getVaultManager().isEnabled()) {
+                    plugin.getVaultManager().deposit(player, paymentAmount);
+                    String amountString = plugin.getConfigManager().formatCurrencyAmount(paymentAmount, order.getCurrencyType());
+                    player.sendMessage(plugin.getConfigManager().getMessage("delivery.payment-received", "%amount%", amountString));
+                }
+            } else {
+                if (plugin.getPlayerPointsManager().isEnabled()) {
+                    int points = (int) Math.round(paymentAmount);
+                    if (points > 0) {
+                        plugin.getPlayerPointsManager().deposit(player, points);
+                        String amountString = plugin.getConfigManager().formatCurrencyAmount(points, order.getCurrencyType());
+                        player.sendMessage(plugin.getConfigManager().getMessage("delivery.payment-received", "%amount%", amountString));
+                    }
+                }
             }
         }
 
         // Kiểm tra nếu đơn hàng đã hoàn thành
         if (order.getReceivedAmount() >= order.getRequiredAmount()) {
-            player.sendMessage(ColorUtils.colorize("&aĐơn hàng đã nhận đủ số lượng yêu cầu."));
+            player.sendMessage(plugin.getConfigManager().getMessage("delivery.order-filled"));
 
+            Player orderOwner = plugin.getServer().getPlayer(order.getPlayerUUID());
             if (orderOwner != null && orderOwner.isOnline()) {
-                plugin.getFoliaLib().getScheduler().runAtEntity(orderOwner, (task) -> {
-                    orderOwner.sendMessage(ColorUtils.colorize("&aĐơn hàng " + order.getMaterial().name() + " đã được hoàn thành! Sử dụng /order để collect items."));
-                });
+                String ownerMessage = plugin.getConfigManager().getMessage(
+                        "delivery.owner-complete",
+                        "%material%",
+                        order.getMaterial().name()
+                );
+                plugin.getFoliaLib().getScheduler().runAtEntity(orderOwner, (task) -> orderOwner.sendMessage(ownerMessage));
             }
         }
 
@@ -138,7 +199,13 @@ public class OrderDeliveryGUI {
         if (excessAmount > 0) {
             ItemStack excessItems = new ItemStack(order.getMaterial(), excessAmount);
             player.getInventory().addItem(excessItems);
-            player.sendMessage(ColorUtils.colorize("&aĐã trả lại &e" + excessAmount + " &a" + order.getMaterial().name() + " thừa."));
+            player.sendMessage(plugin.getConfigManager().getMessage(
+                    "delivery.excess-returned",
+                    "%amount%",
+                    String.valueOf(excessAmount),
+                    "%material%",
+                    order.getMaterial().name()
+            ));
         }
 
         removePlayer(player);

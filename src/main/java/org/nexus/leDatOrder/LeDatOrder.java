@@ -7,6 +7,7 @@ import org.nexus.leDatOrder.listeners.OrderListener;
 import org.nexus.leDatOrder.managers.ConfigManager;
 import org.nexus.leDatOrder.managers.OrderManager;
 import org.nexus.leDatOrder.managers.PlayerPointsManager;
+import org.nexus.leDatOrder.managers.RefundManager;
 import org.nexus.leDatOrder.managers.VaultManager;
 
 public final class LeDatOrder extends JavaPlugin {
@@ -17,6 +18,7 @@ public final class LeDatOrder extends JavaPlugin {
     private OrderManager orderManager;
     private VaultManager vaultManager;
     private PlayerPointsManager playerPointsManager;
+    private RefundManager refundManager;
 
     @Override
     public void onEnable() {
@@ -28,6 +30,7 @@ public final class LeDatOrder extends JavaPlugin {
         orderManager = new OrderManager(this);
         vaultManager = new VaultManager(this);
         playerPointsManager = new PlayerPointsManager(this);
+        refundManager = new RefundManager(this);
 
         getCommand("order").setExecutor(new OrderCommand(this));
 
@@ -63,5 +66,9 @@ public final class LeDatOrder extends JavaPlugin {
 
     public PlayerPointsManager getPlayerPointsManager() {
         return playerPointsManager;
+    }
+
+    public RefundManager getRefundManager() {
+        return refundManager;
     }
 }

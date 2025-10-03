@@ -8,6 +8,8 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.player.AsyncPlayerChatEvent;
+import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.ItemStack;
 import org.nexus.leDatOrder.LeDatOrder;
 import org.nexus.leDatOrder.gui.CreateOrderGUI;
@@ -19,7 +21,6 @@ import org.nexus.leDatOrder.gui.OrderManageGUI;
 import org.nexus.leDatOrder.models.Order;
 import org.nexus.leDatOrder.models.OrderType;
 import org.nexus.leDatOrder.models.SortType;
-import org.nexus.leDatOrder.utils.ColorUtils;
 
 import java.util.HashMap;
 import java.util.List;
@@ -76,7 +77,11 @@ public class OrderListener implements Listener {
                 for (int i = 0; i < all.length; i++) if (all[i] == cur) { idx = i; break; }
                 gui.setCurrentSortType(all[(idx + 1) % all.length]);
                 gui.open();
-                player.sendMessage(ColorUtils.colorize("&aSắp xếp theo: &e" + gui.getCurrentSortType().getDisplayName()));
+                player.sendMessage(plugin.getConfigManager().getMessage(
+                        "sort.changed",
+                        "%type%",
+                        gui.getCurrentSortType().getDisplayName()
+                ));
 
             } else if (slot == plugin.getConfigManager().getFilterItemSlot()) {
                 OrderType[] all = OrderType.values();
@@ -85,7 +90,11 @@ public class OrderListener implements Listener {
                 for (int i = 0; i < all.length; i++) if (all[i] == cur) { idx = i; break; }
                 gui.setCurrentFilterType(all[(idx + 1) % all.length]);
                 gui.open();
-                player.sendMessage(ColorUtils.colorize("&aLọc theo: &e" + gui.getCurrentFilterType().getDisplayName()));
+                player.sendMessage(plugin.getConfigManager().getMessage(
+                        "filter.changed",
+                        "%type%",
+                        gui.getCurrentFilterType().getDisplayName()
+                ));
 
             } else if (slot == plugin.getConfigManager().getRefreshItemSlot()) {
                 gui.open();
@@ -112,16 +121,10 @@ public class OrderListener implements Listener {
 
         // ==== ORDER DELIVERY (cho phép thao tác) ====
         if (strippedTitle.startsWith(orderDeliveryPrefix)) {
-            // Nút “Quay lại”
             ItemStack current = event.getCurrentItem();
-            int backSlotDefault = 40; // 45-slot GUI => slot 40
-            int backSlot = backSlotDefault;
-            Material backMat = Material.BARRIER;
-            try {
-                backMat = plugin.getConfigManager().getItemMaterial("gui.order-delivery.back-item", Material.BARRIER);
-                // Nếu bạn có getter slot tổng quát, thay bằng: backSlot = plugin.getConfigManager().getItemSlot("gui.order-delivery.back-item", 40);
-            } catch (Exception ignored) {}
-            if (current != null && current.getType() == backMat && event.getRawSlot() == backSlot) {
+            int backSlot = plugin.getConfigManager().getOrderDeliveryBackItemSlot();
+            Material backMat = plugin.getConfigManager().getOrderDeliveryBackItemMaterial();
+            if (current != null && event.getRawSlot() == backSlot && current.getType() == backMat) {
                 event.setCancelled(true);
                 player.closeInventory();
                 OrderDeliveryGUI.removePlayer(player);
@@ -145,7 +148,7 @@ public class OrderListener implements Listener {
                     new OrderManageGUI(plugin, player, list.get(slot)).open();
                 }
             } else {
-                int createSlot = 31; // mặc định
+                int createSlot = plugin.getConfigManager().getItemSlot("gui.my-order.create-item", 31);
                 Material createMat = plugin.getConfigManager().getItemMaterial("gui.my-order.create-item", Material.MAP);
                 if (slot == createSlot && clicked.getType() == createMat) {
                     new CreateOrderGUI(plugin, player).open();
@@ -161,14 +164,14 @@ public class OrderListener implements Listener {
             ItemStack clicked = event.getCurrentItem();
             if (clicked == null) return;
 
-            int cancelSlot = 12;
+            int cancelSlot = plugin.getConfigManager().getItemSlot("gui.order-manage.cancel-item", 12);
             Material cancelMat = plugin.getConfigManager().getItemMaterial("gui.order-manage.cancel-item", Material.BARRIER);
             if (slot == cancelSlot && clicked.getType() == cancelMat) {
                 OrderManageGUI.cancelOrder(plugin, player);
                 return;
             }
 
-            int collectSlot = 14;
+            int collectSlot = plugin.getConfigManager().getItemSlot("gui.order-manage.collect-item", 14);
             Material collectMat = plugin.getConfigManager().getItemMaterial("gui.order-manage.collect-item", Material.CHEST);
             if (slot == collectSlot && clicked.getType() == collectMat) {
                 OrderManageGUI.collectItems(plugin, player);
@@ -183,20 +186,20 @@ public class OrderListener implements Listener {
             ItemStack clicked = event.getCurrentItem();
             if (clicked == null) return;
 
-            int backSlot = 10;
+            int backSlot = plugin.getConfigManager().getItemSlot("gui.create-order.back-item", 10);
             Material backMat = plugin.getConfigManager().getItemMaterial("gui.create-order.back-item", Material.RED_STAINED_GLASS_PANE);
             if (slot == backSlot && clicked.getType() == backMat) {
                 new MyOrderGUI(plugin, player).open();
                 return;
             }
 
-            int materialSlot = 12;
+            int materialSlot = plugin.getConfigManager().getItemSlot("gui.create-order.material-item", 12);
             if (slot == materialSlot && clicked.getType() == plugin.getConfigManager().getItemMaterial("gui.create-order.material-item", Material.STONE)) {
                 new MaterialSelectGUI(plugin, player).open();
                 return;
             }
 
-            int amountSlot = 13;
+            int amountSlot = plugin.getConfigManager().getItemSlot("gui.create-order.amount-item", 13);
             if (slot == amountSlot && clicked.getType() == plugin.getConfigManager().getItemMaterial("gui.create-order.amount-item", Material.CHEST)) {
                 player.closeInventory();
                 player.sendMessage(plugin.getConfigManager().getMessage("input.amount-prompt"));
@@ -204,7 +207,7 @@ public class OrderListener implements Listener {
                 return;
             }
 
-            int priceSlot = 14;
+            int priceSlot = plugin.getConfigManager().getItemSlot("gui.create-order.price-item", 14);
             if (slot == priceSlot && clicked.getType() == plugin.getConfigManager().getItemMaterial("gui.create-order.price-item", Material.SUNFLOWER)) {
                 player.closeInventory();
                 player.sendMessage(plugin.getConfigManager().getMessage("input.price-prompt"));
@@ -212,7 +215,7 @@ public class OrderListener implements Listener {
                 return;
             }
 
-            int confirmSlot = 16;
+            int confirmSlot = plugin.getConfigManager().getItemSlot("gui.create-order.confirm-item", 16);
             if (slot == confirmSlot && clicked.getType() == plugin.getConfigManager().getItemMaterial("gui.create-order.confirm-item", Material.LIME_STAINED_GLASS_PANE)) {
                 CreateOrderGUI.createOrder(plugin, player);
                 return;
@@ -238,7 +241,7 @@ public class OrderListener implements Listener {
                         data.toggleCurrencyType();
                         player.sendMessage(plugin.getConfigManager().getMessage("currency.playerpoints-unavailable-switch"));
                     }
-                    String name = data.getCurrencyType() == org.nexus.leDatOrder.enums.CurrencyType.VAULT ? "Vault Money" : "PlayerPoints";
+                    String name = plugin.getConfigManager().getCurrencyDisplayName(data.getCurrencyType());
                     player.sendMessage(plugin.getConfigManager().getMessage("currency.type-changed", "%type%", name));
                     new CreateOrderGUI(plugin, player).open();
                 }
@@ -258,7 +261,7 @@ public class OrderListener implements Listener {
                 CreateOrderGUI.CreateOrderData data = CreateOrderGUI.getCreateData(player);
                 if (data != null) {
                     data.setMaterial(mat);
-                    player.sendMessage(ColorUtils.colorize("&aĐã chọn vật liệu: &e" + mat.name()));
+                    player.sendMessage(plugin.getConfigManager().getMessage("material-select.selected", "%material%", mat.name()));
                     MaterialSelectGUI.clearSearch(player);
                     new CreateOrderGUI(plugin, player).open();
                 }
@@ -291,10 +294,10 @@ public class OrderListener implements Listener {
                 if (!curSearch.isEmpty()) {
                     MaterialSelectGUI.clearSearch(player);
                     new MaterialSelectGUI(plugin, player).open();
-                    player.sendMessage(ColorUtils.colorize("&aĐã xóa tìm kiếm"));
+                    player.sendMessage(plugin.getConfigManager().getMessage("input.search-cleared"));
                 } else {
                     player.closeInventory();
-                    player.sendMessage(ColorUtils.colorize("&aNhập từ khóa tìm kiếm trong chat:"));
+                    player.sendMessage(plugin.getConfigManager().getMessage("input.search-prompt"));
                     awaitingChatInput.put(player.getUniqueId(), ChatInputType.MATERIAL_SEARCH);
                 }
                 return;
@@ -331,7 +334,7 @@ public class OrderListener implements Listener {
      */
     private void handleOrderClick(Player player, int slot, OrderGUI gui) {
         // Lấy danh sách order đã lọc & sắp xếp theo trạng thái hiện tại của GUI
-        List<Order> orders = plugin.getOrderManager().getSortedOrders(
+        List<Order> orders = plugin.getOrderManager().getSortedActiveOrders(
                 gui.getCurrentSortType(),
                 gui.getCurrentFilterType()
         );
@@ -348,7 +351,7 @@ public class OrderListener implements Listener {
 
         // Không cho tự giao cho chính mình
         if (order.getPlayerUUID().equals(player.getUniqueId())) {
-            player.sendMessage(ColorUtils.colorize("&cBạn không thể giao đồ cho chính mình!"));
+            player.sendMessage(plugin.getConfigManager().getMessage("delivery.self-delivery"));
             return;
         }
 
@@ -375,7 +378,7 @@ public class OrderListener implements Listener {
         plugin.getFoliaLib().getScheduler().runAtEntity(player, (task) -> {
             if (type == ChatInputType.MATERIAL_SEARCH) {
                 MaterialSelectGUI.setSearch(player, message);
-                player.sendMessage(ColorUtils.colorize("&aKết quả tìm kiếm: &e" + message));
+                player.sendMessage(plugin.getConfigManager().getMessage("input.search-result", "%search%", message));
                 new MaterialSelectGUI(plugin, player).open();
                 return;
             }
@@ -387,29 +390,27 @@ public class OrderListener implements Listener {
                 try {
                     int amount = Integer.parseInt(message.replaceAll("[^0-9]", ""));
                     if (amount <= 0) {
-                        player.sendMessage(ColorUtils.colorize("&cSố lượng phải > 0."));
+                        player.sendMessage(plugin.getConfigManager().getMessage("input.amount-invalid"));
                     } else {
                         data.setAmount(amount);
-                        player.sendMessage(ColorUtils.colorize("&aĐã đặt số lượng: &e" + amount));
+                        player.sendMessage(plugin.getConfigManager().getMessage("input.amount-set", "%amount%", String.valueOf(amount)));
                     }
                 } catch (NumberFormatException ex) {
-                    player.sendMessage(ColorUtils.colorize("&cSai định dạng số. Vui lòng nhập số nguyên."));
+                    player.sendMessage(plugin.getConfigManager().getMessage("input.invalid-number"));
                 }
             } else if (type == ChatInputType.PRICE) {
                 try {
                     String norm = message.replace(",", ".").replaceAll("[^0-9.]", "");
                     double price = Double.parseDouble(norm);
                     if (price <= 0D) {
-                        player.sendMessage(ColorUtils.colorize("&cGiá phải > 0."));
+                        player.sendMessage(plugin.getConfigManager().getMessage("input.price-invalid"));
                     } else {
                         data.setPricePerItem(price);
-                        String pretty = (data.getCurrencyType() == org.nexus.leDatOrder.enums.CurrencyType.VAULT)
-                                ? ("$" + String.format("%.2f", price))
-                                : ((int) Math.round(price) + " Points");
-                        player.sendMessage(ColorUtils.colorize("&aĐã đặt giá: &e" + pretty));
+                        String pretty = plugin.getConfigManager().formatCurrencyAmount(price, data.getCurrencyType());
+                        player.sendMessage(plugin.getConfigManager().getMessage("input.price-set", "%price%", pretty));
                     }
                 } catch (NumberFormatException ex) {
-                    player.sendMessage(ColorUtils.colorize("&cSai định dạng số. Ví dụ hợp lệ: 12.5 hoặc 12,5"));
+                    player.sendMessage(plugin.getConfigManager().getMessage("input.invalid-number"));
                 }
             }
 
@@ -428,6 +429,21 @@ public class OrderListener implements Listener {
         if (stripped.startsWith(deliveryPrefix)) {
             OrderDeliveryGUI.processDelivery(plugin, player, event.getInventory());
         }
+    }
+
+    @EventHandler
+    public void onPlayerJoin(PlayerJoinEvent event) {
+        plugin.getRefundManager().deliverRefunds(event.getPlayer());
+    }
+
+    @EventHandler
+    public void onPlayerQuit(PlayerQuitEvent event) {
+        Player player = event.getPlayer();
+        awaitingChatInput.remove(player.getUniqueId());
+        OrderDeliveryGUI.removePlayer(player);
+        OrderManageGUI.removePlayer(player);
+        CreateOrderGUI.removePlayer(player);
+        OrderGUI.clearState(player);
     }
 
     private String stripColor(String input) {

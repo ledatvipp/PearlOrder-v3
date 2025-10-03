@@ -13,7 +13,10 @@ import org.nexus.leDatOrder.models.SortType;
 import org.nexus.leDatOrder.utils.ColorUtils;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 public class OrderGUI {
     private final LeDatOrder plugin;
@@ -22,10 +25,26 @@ public class OrderGUI {
     private int currentPage = 0;
     private SortType currentSortType = SortType.RECENTLY_LISTED;
     private OrderType currentFilterType = OrderType.ALL;
+    private static final Map<UUID, OrderGUIState> STATES = new HashMap<>();
+
+    private static class OrderGUIState {
+        private SortType sortType = SortType.RECENTLY_LISTED;
+        private OrderType filterType = OrderType.ALL;
+        private int page = 0;
+    }
 
     public OrderGUI(LeDatOrder plugin, Player player) {
         this.plugin = plugin;
         this.player = player;
+
+        OrderGUIState state = STATES.get(player.getUniqueId());
+        if (state != null) {
+            this.currentSortType = state.sortType;
+            this.currentFilterType = state.filterType;
+            this.currentPage = state.page;
+        } else {
+            saveState();
+        }
     }
 
     public void open() {
@@ -51,6 +70,11 @@ public class OrderGUI {
         if (currentPage >= totalPages) {
             currentPage = Math.max(0, totalPages - 1);
         }
+        if (currentPage < 0) {
+            currentPage = 0;
+        }
+
+        saveState();
 
         // Hiển thị các order
         int startIndex = currentPage * 45;
@@ -65,7 +89,9 @@ public class OrderGUI {
         }
 
         // Thêm các nút chức năng
-        addFunctionButtons();
+        boolean showPrev = currentPage > 0;
+        boolean showNext = currentPage < totalPages - 1;
+        addFunctionButtons(showPrev, showNext);
     }
 
     private ItemStack createOrderItem(Order order) {
@@ -80,13 +106,16 @@ public class OrderGUI {
             
             // Set lore
             List<String> lore = new ArrayList<>();
+            String priceString = plugin.getConfigManager().formatCurrencyAmount(order.getPricePerItem(), order.getCurrencyType());
+            String paidString = plugin.getConfigManager().formatCurrencyAmount(order.getPaidAmount(), order.getCurrencyType());
+            String totalPaidString = plugin.getConfigManager().formatCurrencyAmount(order.getTotalPaid(), order.getCurrencyType());
             for (String line : plugin.getConfigManager().getOrderItemLore()) {
                 line = line.replace("%type%", order.getType().getDisplayName())
-                        .replace("%price%", String.format("%.2f", order.getPricePerItem()))
+                        .replace("%price%", priceString)
                         .replace("%revived%", String.valueOf(order.getReceivedAmount()))
                         .replace("%required%", String.valueOf(order.getRequiredAmount()))
-                        .replace("%paid%", String.format("%.2f", order.getPaidAmount()))
-                        .replace("%total_paid%", String.format("%.2f", order.getTotalPaid()))
+                        .replace("%paid%", paidString)
+                        .replace("%total_paid%", totalPaidString)
                         .replace("%player%", order.getPlayerName());
                 lore.add(ColorUtils.colorize(line));
             }
@@ -97,7 +126,7 @@ public class OrderGUI {
         return item;
     }
 
-    private void addFunctionButtons() {
+    private void addFunctionButtons(boolean showPrevPage, boolean showNextPage) {
         // Sort button using configuration
         {
             Material sortMat = plugin.getConfigManager().getItemMaterial("gui.order.sort-item", Material.CAULDRON);
@@ -212,7 +241,7 @@ public class OrderGUI {
         }
 
         // Previous page button using configuration (only show if currentPage > 0)
-        if (currentPage > 0) {
+        if (showPrevPage) {
             Material prevMat = plugin.getConfigManager().getItemMaterial("gui.order.previous-page-item", Material.ARROW);
             String prevName = plugin.getConfigManager().getItemDisplayName("gui.order.previous-page-item", "&6Trang trước");
             List<String> prevLoreCfg = plugin.getConfigManager().getItemLore("gui.order.previous-page-item");
@@ -233,9 +262,7 @@ public class OrderGUI {
         }
 
         // Next page button using configuration (only show if there are more pages)
-        List<Order> filteredOrders = plugin.getOrderManager().getSortedOrders(currentSortType, currentFilterType);
-        int totalPages = (int) Math.ceil(filteredOrders.size() / 45.0);
-        if (currentPage < totalPages - 1) {
+        if (showNextPage) {
             Material nextMat = plugin.getConfigManager().getItemMaterial("gui.order.next-page-item", Material.ARROW);
             String nextName = plugin.getConfigManager().getItemDisplayName("gui.order.next-page-item", "&6Trang sau");
             List<String> nextLoreCfg = plugin.getConfigManager().getItemLore("gui.order.next-page-item");
@@ -271,9 +298,10 @@ public class OrderGUI {
                 int size = plugin.getConfigManager().getOrderGuiSize();
                 inventory = Bukkit.createInventory(null, size, title);
             }
-            
+
             updateInventory();
         }
+        saveState();
     }
 
     public void previousPage() {
@@ -289,9 +317,10 @@ public class OrderGUI {
                 int size = plugin.getConfigManager().getOrderGuiSize();
                 inventory = Bukkit.createInventory(null, size, title);
             }
-            
+
             updateInventory();
         }
+        saveState();
     }
 
     // Thêm các getter và setter
@@ -301,17 +330,34 @@ public class OrderGUI {
     
     public void setCurrentSortType(SortType sortType) {
         this.currentSortType = sortType;
+        this.currentPage = 0;
+        saveState();
     }
-    
+
     public OrderType getCurrentFilterType() {
         return currentFilterType;
     }
-    
+
     public void setCurrentFilterType(OrderType filterType) {
         this.currentFilterType = filterType;
+        this.currentPage = 0;
+        saveState();
     }
-    
+
     public int getCurrentPage() {
         return currentPage;
+    }
+
+    private void saveState() {
+        OrderGUIState state = STATES.computeIfAbsent(player.getUniqueId(), ignored -> new OrderGUIState());
+        state.sortType = currentSortType;
+        state.filterType = currentFilterType;
+        state.page = currentPage;
+    }
+
+    public static void clearState(Player player) {
+        if (player != null) {
+            STATES.remove(player.getUniqueId());
+        }
     }
 }

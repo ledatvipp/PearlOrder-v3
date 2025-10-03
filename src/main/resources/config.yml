@@ -1,5 +1,16 @@
 # Messages Configuration
 messages:
+  command:
+    player-only: "&cThis command can only be used by players."
+    no-permission: "&cYou don't have permission to use this command."
+    reload:
+      success: "&aConfig reloaded."
+    help:
+      header: "&6===== LeDatOrder Help ====="
+      order: "&e/order &7- Open the main order GUI"
+      my: "&e/order my &7- Open your orders GUI"
+      reload: "&e/order reload &7- Reload the config"
+
   # Order Creation Messages
   order:
     creation:
@@ -8,12 +19,25 @@ messages:
       price-invalid: "&cPrice must be greater than 0."
       limit-reached: "&cBạn đã đạt giới hạn số lượng order (&e%max%&c). Hãy hoàn thành hoặc hủy một số order hiện tại."
       insufficient-money: "&cYou don't have enough money to create this order. You need %amount%"
-      insufficient-points: "&cYou don't have enough points to create this order. You need %amount% points"
+      insufficient-points: "&cYou don't have enough points to create this order. You need %amount%"
       payment-failed: "&cPayment failed! Please try again."
-      fee-charged-vault: "&aYou have been charged &e$%fee% &afor creating this order."
-      fee-charged-points: "&aYou have been charged &e%fee% Points &afor creating this order."
+      fee-charged-vault: "&aYou have been charged &e%fee% &afor creating this order."
+      fee-charged-points: "&aYou have been charged &e%fee% &afor creating this order."
       payment-success: "&aYou have paid &e%amount% &afor this order."
-  
+    cancel:
+      cannot: "&cKhông thể hủy đơn hàng này. Có thể đơn đã hoàn thành hoặc không tồn tại."
+      refund: "&aĐã hoàn trả &e%amount% &avề tài khoản của bạn."
+      items-returned: "&aĐã trả lại &e%amount% %material%&a cho những người đóng góp."
+      items-missing: "&eCòn &6%amount% %material%&e không thể hoàn trả do thiếu dữ liệu đóng góp."
+      success: "&aOrder has been cancelled."
+      contributor-refund: "&aBạn đã nhận lại &e%amount% %material%&a từ một đơn hàng bị hủy."
+    collect:
+      none: "&cNo items available to collect."
+      partial: "&aĐã nhận &e%collected% %material%&a. Phần còn lại đã rơi xuống đất do túi đồ đầy."
+      success: "&aĐã nhận &e%amount% %material%!"
+      completed: "&aĐơn hàng đã hoàn thành và được xóa khỏi hệ thống."
+    completed-owner: "&aĐơn hàng %material% đã hoàn thành và được xóa khỏi hệ thống!"
+
   # Currency Messages
   currency:
     vault-unavailable: "&cVault is not available!"
@@ -22,31 +46,43 @@ messages:
     vault-unavailable-switch: "&cVault is not available! Using PlayerPoints instead."
     playerpoints-unavailable-switch: "&cPlayerPoints is not available! Using Vault instead."
     type-changed: "&aCurrency type changed to: &e%type%"
-  
+
   # Input Messages
   input:
     amount-prompt: "&aPlease enter the amount in chat:"
     price-prompt: "&aPlease enter the price per item in chat:"
     search-prompt: "&aPlease enter search term in chat:"
     amount-set: "&aAmount set to &e%amount%"
-    price-set: "&aPrice set to &e$%price%"
+    price-set: "&aPrice set to &e%price%"
     material-set: "&aMaterial set to &e%material%"
     search-result: "&aKết quả tìm kiếm: &e%search%"
-    search-cleared: "&aSearch cleared"
+    search-cleared: "&aĐã xóa tìm kiếm."
     invalid-number: "&cInvalid number format. Please enter a valid number."
-  
+    amount-invalid: "&cAmount must be greater than 0."
+    price-invalid: "&cPrice must be greater than 0."
+
+  material-select:
+    selected: "&aĐã chọn vật liệu: &e%material%"
+
   # Sort and Filter Messages
   sort:
     changed: "&aSắp xếp theo: &e%type%"
-  
+
   filter:
     changed: "&aLọc theo: &e%type%"
-  
+
   # Delivery Messages
   delivery:
     self-delivery: "&cBạn không thể giao đồ cho chính mình!"
     success: "&aSuccessfully delivered %amount% %material% to %player%'s order!"
     payment-received: "&aYou received %amount% for delivering items!"
+    owner-update: "&a%player% đã giao &e%amount% %material%&a. Đã chi: &e%payment%&a."
+    order-filled: "&aĐơn hàng đã nhận đủ số lượng yêu cầu."
+    owner-complete: "&aĐơn hàng %material% của bạn đã hoàn thành! Hãy vào /order để nhận."
+    excess-returned: "&aĐã trả lại &e%amount% %material%&a vượt quá số lượng yêu cầu."
+
+  refund:
+    received: "&aBạn đã nhận lại &e%amount% &avật phẩm từ các đơn hàng bị hủy."
 
 # GUI Configuration
 gui:
