@@ -131,6 +131,17 @@ public class OrderListener implements Listener {
                 new OrderGUI(plugin, player).open();
                 return;
             }
+
+            int rawSlot = event.getRawSlot();
+            int infoSlot = plugin.getConfigManager().getOrderDeliveryOrderInfoSlot();
+            List<Integer> borderSlots = plugin.getConfigManager().getOrderDeliveryBorderSlots();
+
+            if (rawSlot < event.getView().getTopInventory().getSize()
+                    && (rawSlot == infoSlot || rawSlot == backSlot || borderSlots.contains(rawSlot))) {
+                event.setCancelled(true);
+                return;
+            }
+
             event.setCancelled(false);
             return;
         }
@@ -223,8 +234,7 @@ public class OrderListener implements Listener {
 
             // Toggle tiền tệ
             int currencySlot = plugin.getConfigManager().getCreateOrderCurrencyItemSlot();
-            Material currencyMat = plugin.getConfigManager().getCreateOrderCurrencyItemMaterial();
-            if (slot == currencySlot && clicked.getType() == currencyMat) {
+            if (slot == currencySlot && slot < event.getView().getTopInventory().getSize()) {
                 CreateOrderGUI.CreateOrderData data = CreateOrderGUI.getCreateData(player);
                 if (data != null) {
                     boolean vaultOK = plugin.getVaultManager().isEnabled();

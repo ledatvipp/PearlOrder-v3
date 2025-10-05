@@ -12,8 +12,10 @@ import org.nexus.leDatOrder.utils.ColorUtils;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 public class OrderDeliveryGUI {
@@ -46,6 +48,15 @@ public class OrderDeliveryGUI {
 
     private void updateInventory() {
         inventory.clear();
+
+        // Border items
+        ItemStack borderItem = createBorderItem();
+        List<Integer> borderSlots = plugin.getConfigManager().getOrderDeliveryBorderSlots();
+        for (int slot : borderSlots) {
+            if (slot >= 0 && slot < inventory.getSize()) {
+                inventory.setItem(slot, borderItem.clone());
+            }
+        }
 
         // Order info item
         ItemStack infoItem = new ItemStack(order.getMaterial());
@@ -96,6 +107,20 @@ public class OrderDeliveryGUI {
         }
     }
 
+    private ItemStack createBorderItem() {
+        ItemStack borderItem = new ItemStack(plugin.getConfigManager().getOrderDeliveryBorderItemMaterial());
+        ItemMeta meta = borderItem.getItemMeta();
+        if (meta != null) {
+            meta.setDisplayName(plugin.getConfigManager().getOrderDeliveryBorderItemDisplayName());
+            List<String> lore = plugin.getConfigManager().getOrderDeliveryBorderItemLore();
+            if (lore != null && !lore.isEmpty()) {
+                meta.setLore(lore);
+            }
+            borderItem.setItemMeta(meta);
+        }
+        return borderItem;
+    }
+
     public static Order getOrderByPlayer(Player player) {
         return playerDeliveryMap.get(player.getUniqueId());
     }
@@ -112,7 +137,14 @@ public class OrderDeliveryGUI {
         int deliveredAmount = 0;
         Map<Integer, ItemStack> returnItems = new HashMap<>();
 
+        Set<Integer> protectedSlots = new HashSet<>(plugin.getConfigManager().getOrderDeliveryBorderSlots());
+        protectedSlots.add(plugin.getConfigManager().getOrderDeliveryOrderInfoSlot());
+        protectedSlots.add(plugin.getConfigManager().getOrderDeliveryBackItemSlot());
+
         for (int i = 0; i < inventory.getSize(); i++) {
+            if (protectedSlots.contains(i)) {
+                continue;
+            }
             ItemStack item = inventory.getItem(i);
             if (item != null) {
                 if (item.getType() == order.getMaterial()) {
