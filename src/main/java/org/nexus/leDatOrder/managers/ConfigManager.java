@@ -252,13 +252,22 @@ public class ConfigManager {
             config.set(basePath + ".order.cancel.refund", "&aĐã hoàn trả &e%amount% &avề tài khoản của bạn.");
         }
         if (!config.contains(basePath + ".order.cancel.items-returned")) {
-            config.set(basePath + ".order.cancel.items-returned", "&aĐã trả lại &e%amount% %material%&a cho những người đóng góp.");
+            config.set(basePath + ".order.cancel.items-returned", "&aBạn đã nhận lại &e%amount% %material%&a từ đơn hàng.");
         }
         if (!config.contains(basePath + ".order.cancel.items-missing")) {
             config.set(basePath + ".order.cancel.items-missing", "&eCòn &6%amount% %material%&e không thể hoàn trả do thiếu dữ liệu đóng góp.");
         }
         if (!config.contains(basePath + ".order.cancel.success")) {
             config.set(basePath + ".order.cancel.success", "&aOrder has been cancelled.");
+        }
+        if (!config.contains(basePath + ".order.cancel.success-full")) {
+            config.set(basePath + ".order.cancel.success-full", "&aĐơn hàng đã được thu hồi sau khi hoàn thành 100%. Tất cả vật phẩm đã được gửi lại cho bạn.");
+        }
+        if (!config.contains(basePath + ".order.cancel.success-partial")) {
+            config.set(basePath + ".order.cancel.success-partial", "&aĐơn hàng đã được thu hồi. Bạn nhận lại số vật phẩm đã được giao và số tiền còn dư.");
+        }
+        if (!config.contains(basePath + ".order.cancel.success-empty")) {
+            config.set(basePath + ".order.cancel.success-empty", "&aĐơn hàng đã được thu hồi. Toàn bộ số tiền đã được hoàn trả cho bạn.");
         }
         if (!config.contains(basePath + ".order.cancel.contributor-refund")) {
             config.set(basePath + ".order.cancel.contributor-refund", "&aBạn đã nhận lại &e%amount% %material%&a từ một đơn hàng bị hủy.");

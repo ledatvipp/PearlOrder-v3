@@ -154,84 +154,56 @@ public class OrderManageGUI {
             return;
         }
 
-        // Tính toán số tiền cần refund: chỉ refund phần chưa nhận được hàng
-        int itemsNotReceived = Math.max(0, order.getRequiredAmount() - order.getReceivedAmount());
-        double refundAmount = itemsNotReceived * order.getPricePerItem();
+        int requiredAmount = order.getRequiredAmount();
+        int receivedAmount = order.getReceivedAmount();
+        int collectedAmount = order.getCollectedAmount();
 
-        // Refund theo loại tiền tệ
-        if (refundAmount > 0) {
+        // Xác định số vật phẩm còn lại cần trả
+        int uncollectedItems = Math.max(0, receivedAmount - collectedAmount);
+        if (uncollectedItems > 0) {
+            giveItemsToPlayer(player, order.getMaterial(), uncollectedItems);
+            order.addCollectedAmount(uncollectedItems);
+            player.sendMessage(plugin.getConfigManager().getMessage(
+                    "order.cancel.items-returned",
+                    "%amount%",
+                    String.valueOf(uncollectedItems),
+                    "%material%",
+                    order.getMaterial().name()
+            ));
+        }
+
+        // Tính toán số tiền hoàn trả dựa trên phần chưa được giao
+        double refundableBalance = Math.max(0.0, order.getTotalPaid() - order.getPaidAmount());
+        if (refundableBalance > 0) {
             if (order.getCurrencyType() == org.nexus.leDatOrder.enums.CurrencyType.VAULT) {
                 if (plugin.getVaultManager().isEnabled()) {
-                    plugin.getVaultManager().deposit(player, refundAmount);
-                    String amountString = plugin.getConfigManager().formatCurrencyAmount(refundAmount, order.getCurrencyType());
+                    plugin.getVaultManager().deposit(player, refundableBalance);
+                    String amountString = plugin.getConfigManager().formatCurrencyAmount(refundableBalance, order.getCurrencyType());
                     player.sendMessage(plugin.getConfigManager().getMessage("order.cancel.refund", "%amount%", amountString));
                 }
-            } else {
-                if (plugin.getPlayerPointsManager().isEnabled()) {
-                    int points = (int) Math.round(refundAmount);
-                    if (points > 0) {
-                        plugin.getPlayerPointsManager().deposit(player, points);
-                        String amountString = plugin.getConfigManager().formatCurrencyAmount(points, order.getCurrencyType());
-                        player.sendMessage(plugin.getConfigManager().getMessage("order.cancel.refund", "%amount%", amountString));
-                    }
+            } else if (plugin.getPlayerPointsManager().isEnabled()) {
+                int points = (int) Math.round(refundableBalance);
+                if (points > 0) {
+                    plugin.getPlayerPointsManager().deposit(player, points);
+                    String amountString = plugin.getConfigManager().formatCurrencyAmount(points, order.getCurrencyType());
+                    player.sendMessage(plugin.getConfigManager().getMessage("order.cancel.refund", "%amount%", amountString));
                 }
             }
         }
 
-        // Trả lại vật phẩm cho những người đã đóng góp
-        int remainingToReturn = order.getReceivedAmount() - order.getCollectedAmount();
-        int totalReturned = 0;
-        if (remainingToReturn > 0 && !order.getContributions().isEmpty()) {
-            for (Map.Entry<UUID, Integer> entry : order.getContributions().entrySet()) {
-                UUID contributorId = entry.getKey();
-                if (contributorId == null || contributorId.equals(order.getPlayerUUID())) {
-                    continue;
-                }
-
-                int contributed = entry.getValue();
-                if (contributed <= 0) {
-                    continue;
-                }
-
-                int refundAmountItems = Math.min(contributed, remainingToReturn);
-                if (refundAmountItems <= 0) {
-                    continue;
-                }
-
-                returnItemsToContributor(plugin, contributorId, order.getMaterial(), refundAmountItems);
-                remainingToReturn -= refundAmountItems;
-                totalReturned += refundAmountItems;
-
-                if (remainingToReturn <= 0) {
-                    break;
-                }
-            }
+        // Thông báo tùy trường hợp
+        if (receivedAmount >= requiredAmount) {
+            player.sendMessage(plugin.getConfigManager().getMessage("order.cancel.success-full"));
+        } else if (receivedAmount > 0) {
+            player.sendMessage(plugin.getConfigManager().getMessage("order.cancel.success-partial"));
+        } else {
+            player.sendMessage(plugin.getConfigManager().getMessage("order.cancel.success-empty"));
         }
 
         order.clearContributions();
 
-        if (totalReturned > 0) {
-            player.sendMessage(plugin.getConfigManager().getMessage(
-                    "order.cancel.items-returned",
-                    "%amount%",
-                    String.valueOf(totalReturned),
-                    "%material%",
-                    order.getMaterial().name()
-            ));
-        }
-        if (remainingToReturn > 0) {
-            player.sendMessage(plugin.getConfigManager().getMessage(
-                    "order.cancel.items-missing",
-                    "%amount%",
-                    String.valueOf(remainingToReturn),
-                    "%material%",
-                    order.getMaterial().name()
-            ));
-        }
-
         // Xóa order
         plugin.getOrderManager().removeOrder(order.getId());
-        player.sendMessage(plugin.getConfigManager().getMessage("order.cancel.success"));
 
         // Mở lại GUI My Order
         new MyOrderGUI(plugin, player).open();
@@ -305,34 +277,22 @@ public class OrderManageGUI {
         new OrderManageGUI(plugin, player, order).open();
     }
 
-    private static void returnItemsToContributor(LeDatOrder plugin, UUID contributorId, Material material, int amount) {
+    private static void giveItemsToPlayer(Player player, Material material, int amount) {
         if (amount <= 0 || material == Material.AIR) {
             return;
         }
 
-        Player contributor = plugin.getServer().getPlayer(contributorId);
-        if (contributor != null && contributor.isOnline()) {
-            int remaining = amount;
-            while (remaining > 0) {
-                int stackSize = Math.min(material.getMaxStackSize(), remaining);
-                ItemStack stack = new ItemStack(material, stackSize);
-                HashMap<Integer, ItemStack> leftover = contributor.getInventory().addItem(stack);
-                if (!leftover.isEmpty()) {
-                    for (ItemStack item : leftover.values()) {
-                        contributor.getWorld().dropItemNaturally(contributor.getLocation(), item);
-                    }
+        int remaining = amount;
+        while (remaining > 0) {
+            int stackSize = Math.min(material.getMaxStackSize(), remaining);
+            ItemStack stack = new ItemStack(material, stackSize);
+            Map<Integer, ItemStack> leftovers = player.getInventory().addItem(stack);
+            if (!leftovers.isEmpty()) {
+                for (ItemStack leftover : leftovers.values()) {
+                    player.getWorld().dropItemNaturally(player.getLocation(), leftover);
                 }
-                remaining -= stackSize;
             }
-            contributor.sendMessage(plugin.getConfigManager().getMessage(
-                    "order.cancel.contributor-refund",
-                    "%amount%",
-                    String.valueOf(amount),
-                    "%material%",
-                    material.name()
-            ));
-        } else {
-            plugin.getRefundManager().queueRefund(contributorId, material, amount);
+            remaining -= stackSize;
         }
     }
 }
