@@ -535,17 +535,22 @@ public class ConfigManager {
 
     private void setDefaultOrderDeliveryGUI() {
         String basePath = "gui.order-delivery";
-        
+
         if (!config.contains(basePath + ".title")) {
             config.set(basePath + ".title", "&6Order -> %player%");
         }
-        
+
         if (!config.contains(basePath + ".size")) {
             config.set(basePath + ".size", 45);
         }
-        
+
+        if (!config.contains(basePath + ".border-slots")) {
+            config.set(basePath + ".border-slots", Arrays.asList(0, 1, 2, 3, 5, 6, 7, 8, 36, 37, 38, 39, 41, 42, 43, 44));
+        }
+
+        setDefaultItem(basePath + ".border-item", "BLACK_STAINED_GLASS_PANE", " ", -1);
         setDefaultItem(basePath + ".back-item", "BARRIER", "&cBack to Orders", 40, Arrays.asList("&7Return to order list"));
-        
+
         if (!config.contains(basePath + ".order-info.display-name")) {
             config.set(basePath + ".order-info.display-name", "&6%player%'s Order");
         }
@@ -791,6 +796,26 @@ public class ConfigManager {
 
     public int getOrderDeliveryBackItemSlot() {
         return getItemSlot("gui.order-delivery.back-item", 40);
+    }
+
+    public Material getOrderDeliveryBorderItemMaterial() {
+        return getItemMaterial("gui.order-delivery.border-item", Material.BLACK_STAINED_GLASS_PANE);
+    }
+
+    public String getOrderDeliveryBorderItemDisplayName() {
+        return getItemDisplayName("gui.order-delivery.border-item", " ");
+    }
+
+    public List<String> getOrderDeliveryBorderItemLore() {
+        return getItemLore("gui.order-delivery.border-item");
+    }
+
+    public List<Integer> getOrderDeliveryBorderSlots() {
+        List<Integer> slots = config.getIntegerList("gui.order-delivery.border-slots");
+        if (slots.isEmpty()) {
+            slots = Arrays.asList(0, 1, 2, 3, 5, 6, 7, 8, 36, 37, 38, 39, 41, 42, 43, 44);
+        }
+        return slots;
     }
 
     public String formatCurrencyAmount(double amount, CurrencyType currencyType) {
