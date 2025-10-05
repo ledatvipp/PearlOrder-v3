@@ -154,32 +154,12 @@ public class OrderManageGUI {
             return;
         }
 
-        // Tính toán số tiền cần refund: chỉ refund phần chưa nhận được hàng
-        int itemsNotReceived = Math.max(0, order.getRequiredAmount() - order.getReceivedAmount());
-        double refundAmount = itemsNotReceived * order.getPricePerItem();
+        int requiredAmount = order.getRequiredAmount();
+        int receivedAmount = order.getReceivedAmount();
+        int collectedAmount = order.getCollectedAmount();
 
-        // Refund theo loại tiền tệ
-        if (refundAmount > 0) {
-            if (order.getCurrencyType() == org.nexus.leDatOrder.enums.CurrencyType.VAULT) {
-                if (plugin.getVaultManager().isEnabled()) {
-                    plugin.getVaultManager().deposit(player, refundAmount);
-                    String amountString = plugin.getConfigManager().formatCurrencyAmount(refundAmount, order.getCurrencyType());
-                    player.sendMessage(plugin.getConfigManager().getMessage("order.cancel.refund", "%amount%", amountString));
-                }
-            } else {
-                if (plugin.getPlayerPointsManager().isEnabled()) {
-                    int points = (int) Math.round(refundAmount);
-                    if (points > 0) {
-                        plugin.getPlayerPointsManager().deposit(player, points);
-                        String amountString = plugin.getConfigManager().formatCurrencyAmount(points, order.getCurrencyType());
-                        player.sendMessage(plugin.getConfigManager().getMessage("order.cancel.refund", "%amount%", amountString));
-                    }
-                }
-            }
-        }
-
-        // Trả lại vật phẩm chưa thu thập cho chủ đơn hàng
-        int uncollectedItems = Math.max(0, order.getReceivedAmount() - order.getCollectedAmount());
+        // Xác định số vật phẩm còn lại cần trả
+        int uncollectedItems = Math.max(0, receivedAmount - collectedAmount);
         if (uncollectedItems > 0) {
             giveItemsToPlayer(player, order.getMaterial(), uncollectedItems);
             order.addCollectedAmount(uncollectedItems);
@@ -192,11 +172,38 @@ public class OrderManageGUI {
             ));
         }
 
+        // Tính toán số tiền hoàn trả dựa trên phần chưa được giao
+        double refundableBalance = Math.max(0.0, order.getTotalPaid() - order.getPaidAmount());
+        if (refundableBalance > 0) {
+            if (order.getCurrencyType() == org.nexus.leDatOrder.enums.CurrencyType.VAULT) {
+                if (plugin.getVaultManager().isEnabled()) {
+                    plugin.getVaultManager().deposit(player, refundableBalance);
+                    String amountString = plugin.getConfigManager().formatCurrencyAmount(refundableBalance, order.getCurrencyType());
+                    player.sendMessage(plugin.getConfigManager().getMessage("order.cancel.refund", "%amount%", amountString));
+                }
+            } else if (plugin.getPlayerPointsManager().isEnabled()) {
+                int points = (int) Math.round(refundableBalance);
+                if (points > 0) {
+                    plugin.getPlayerPointsManager().deposit(player, points);
+                    String amountString = plugin.getConfigManager().formatCurrencyAmount(points, order.getCurrencyType());
+                    player.sendMessage(plugin.getConfigManager().getMessage("order.cancel.refund", "%amount%", amountString));
+                }
+            }
+        }
+
+        // Thông báo tùy trường hợp
+        if (receivedAmount >= requiredAmount) {
+            player.sendMessage(plugin.getConfigManager().getMessage("order.cancel.success-full"));
+        } else if (receivedAmount > 0) {
+            player.sendMessage(plugin.getConfigManager().getMessage("order.cancel.success-partial"));
+        } else {
+            player.sendMessage(plugin.getConfigManager().getMessage("order.cancel.success-empty"));
+        }
+
         order.clearContributions();
 
         // Xóa order
         plugin.getOrderManager().removeOrder(order.getId());
-        player.sendMessage(plugin.getConfigManager().getMessage("order.cancel.success"));
 
         // Mở lại GUI My Order
         new MyOrderGUI(plugin, player).open();
