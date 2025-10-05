@@ -178,56 +178,21 @@ public class OrderManageGUI {
             }
         }
 
-        // Trả lại vật phẩm cho những người đã đóng góp
-        int remainingToReturn = order.getReceivedAmount() - order.getCollectedAmount();
-        int totalReturned = 0;
-        if (remainingToReturn > 0 && !order.getContributions().isEmpty()) {
-            for (Map.Entry<UUID, Integer> entry : order.getContributions().entrySet()) {
-                UUID contributorId = entry.getKey();
-                if (contributorId == null || contributorId.equals(order.getPlayerUUID())) {
-                    continue;
-                }
-
-                int contributed = entry.getValue();
-                if (contributed <= 0) {
-                    continue;
-                }
-
-                int refundAmountItems = Math.min(contributed, remainingToReturn);
-                if (refundAmountItems <= 0) {
-                    continue;
-                }
-
-                returnItemsToContributor(plugin, contributorId, order.getMaterial(), refundAmountItems);
-                remainingToReturn -= refundAmountItems;
-                totalReturned += refundAmountItems;
-
-                if (remainingToReturn <= 0) {
-                    break;
-                }
-            }
-        }
-
-        order.clearContributions();
-
-        if (totalReturned > 0) {
+        // Trả lại vật phẩm chưa thu thập cho chủ đơn hàng
+        int uncollectedItems = Math.max(0, order.getReceivedAmount() - order.getCollectedAmount());
+        if (uncollectedItems > 0) {
+            giveItemsToPlayer(player, order.getMaterial(), uncollectedItems);
+            order.addCollectedAmount(uncollectedItems);
             player.sendMessage(plugin.getConfigManager().getMessage(
                     "order.cancel.items-returned",
                     "%amount%",
-                    String.valueOf(totalReturned),
+                    String.valueOf(uncollectedItems),
                     "%material%",
                     order.getMaterial().name()
             ));
         }
-        if (remainingToReturn > 0) {
-            player.sendMessage(plugin.getConfigManager().getMessage(
-                    "order.cancel.items-missing",
-                    "%amount%",
-                    String.valueOf(remainingToReturn),
-                    "%material%",
-                    order.getMaterial().name()
-            ));
-        }
+
+        order.clearContributions();
 
         // Xóa order
         plugin.getOrderManager().removeOrder(order.getId());
@@ -305,34 +270,22 @@ public class OrderManageGUI {
         new OrderManageGUI(plugin, player, order).open();
     }
 
-    private static void returnItemsToContributor(LeDatOrder plugin, UUID contributorId, Material material, int amount) {
+    private static void giveItemsToPlayer(Player player, Material material, int amount) {
         if (amount <= 0 || material == Material.AIR) {
             return;
         }
 
-        Player contributor = plugin.getServer().getPlayer(contributorId);
-        if (contributor != null && contributor.isOnline()) {
-            int remaining = amount;
-            while (remaining > 0) {
-                int stackSize = Math.min(material.getMaxStackSize(), remaining);
-                ItemStack stack = new ItemStack(material, stackSize);
-                HashMap<Integer, ItemStack> leftover = contributor.getInventory().addItem(stack);
-                if (!leftover.isEmpty()) {
-                    for (ItemStack item : leftover.values()) {
-                        contributor.getWorld().dropItemNaturally(contributor.getLocation(), item);
-                    }
+        int remaining = amount;
+        while (remaining > 0) {
+            int stackSize = Math.min(material.getMaxStackSize(), remaining);
+            ItemStack stack = new ItemStack(material, stackSize);
+            Map<Integer, ItemStack> leftovers = player.getInventory().addItem(stack);
+            if (!leftovers.isEmpty()) {
+                for (ItemStack leftover : leftovers.values()) {
+                    player.getWorld().dropItemNaturally(player.getLocation(), leftover);
                 }
-                remaining -= stackSize;
             }
-            contributor.sendMessage(plugin.getConfigManager().getMessage(
-                    "order.cancel.contributor-refund",
-                    "%amount%",
-                    String.valueOf(amount),
-                    "%material%",
-                    material.name()
-            ));
-        } else {
-            plugin.getRefundManager().queueRefund(contributorId, material, amount);
+            remaining -= stackSize;
         }
     }
 }

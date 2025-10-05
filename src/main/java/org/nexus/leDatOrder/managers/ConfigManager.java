@@ -252,7 +252,7 @@ public class ConfigManager {
             config.set(basePath + ".order.cancel.refund", "&aĐã hoàn trả &e%amount% &avề tài khoản của bạn.");
         }
         if (!config.contains(basePath + ".order.cancel.items-returned")) {
-            config.set(basePath + ".order.cancel.items-returned", "&aĐã trả lại &e%amount% %material%&a cho những người đóng góp.");
+            config.set(basePath + ".order.cancel.items-returned", "&aBạn đã nhận lại &e%amount% %material%&a từ đơn hàng.");
         }
         if (!config.contains(basePath + ".order.cancel.items-missing")) {
             config.set(basePath + ".order.cancel.items-missing", "&eCòn &6%amount% %material%&e không thể hoàn trả do thiếu dữ liệu đóng góp.");
