@@ -258,10 +258,11 @@ public class CreateOrderGUI {
 
         // Tính tổng chi phí để tạo order
         double fee = 0; // Có thể thêm phí tạo order nếu muốn
-        
+        double totalPrice = data.getAmount() * data.getPricePerItem();
+
         boolean paymentSuccess = false;
         String currencyName = "";
-        
+
         if (data.getCurrencyType() == CurrencyType.VAULT) {
             // Sử dụng Vault
             if (!plugin.getVaultManager().isEnabled()) {
@@ -269,16 +270,14 @@ public class CreateOrderGUI {
                 return;
             }
 
-            double totalCost = data.getAmount() * data.getPricePerItem();
-
-            if (!plugin.getVaultManager().has(player, totalCost + fee)) {
-                String needed = plugin.getConfigManager().formatCurrencyAmount(totalCost + fee, CurrencyType.VAULT);
+            if (!plugin.getVaultManager().has(player, totalPrice + fee)) {
+                String needed = plugin.getConfigManager().formatCurrencyAmount(totalPrice + fee, CurrencyType.VAULT);
                 player.sendMessage(plugin.getConfigManager().getMessage("order.creation.insufficient-money", "%amount%", needed));
                 return;
             }
 
-            paymentSuccess = plugin.getVaultManager().withdraw(player, totalCost + fee);
-            currencyName = plugin.getConfigManager().formatCurrencyAmount(totalCost, CurrencyType.VAULT);
+            paymentSuccess = plugin.getVaultManager().withdraw(player, totalPrice + fee);
+            currencyName = plugin.getConfigManager().formatCurrencyAmount(totalPrice, CurrencyType.VAULT);
 
         } else {
             // Sử dụng PlayerPoints
@@ -287,7 +286,7 @@ public class CreateOrderGUI {
                 return;
             }
 
-            int totalCost = (int) Math.round(data.getAmount() * data.getPricePerItem());
+            int totalCost = (int) Math.round(totalPrice);
             int totalFee = (int) Math.round(fee);
 
             if (!plugin.getPlayerPointsManager().has(player, totalCost + totalFee)) {
@@ -337,6 +336,28 @@ public class CreateOrderGUI {
                 "%max%",
                 String.valueOf(maxOrders)
         ));
+
+        String broadcastMessage = plugin.getConfigManager().getMessage(
+                "order.creation.broadcast",
+                "%player%",
+                player.getName(),
+                "%material%",
+                data.getMaterial().name(),
+                "%amount%",
+                String.valueOf(data.getAmount()),
+                "%price%",
+                plugin.getConfigManager().formatCurrencyAmount(data.getPricePerItem(), data.getCurrencyType()),
+                "%total%",
+                plugin.getConfigManager().formatCurrencyAmount(totalPrice, data.getCurrencyType()),
+                "%currency%",
+                plugin.getConfigManager().getCurrencyDisplayName(data.getCurrencyType())
+        );
+
+        if (broadcastMessage != null && !broadcastMessage.trim().isEmpty()) {
+            plugin.getServer().getOnlinePlayers().stream()
+                    .filter(online -> !online.getUniqueId().equals(player.getUniqueId()))
+                    .forEach(online -> online.sendMessage(broadcastMessage));
+        }
 
         // Mở lại GUI My Order
         new MyOrderGUI(plugin, player).open();
