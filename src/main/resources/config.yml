@@ -24,6 +24,7 @@ messages:
       fee-charged-vault: "&aYou have been charged &e%fee% &afor creating this order."
       fee-charged-points: "&aYou have been charged &e%fee% &afor creating this order."
       payment-success: "&aYou have paid &e%amount% &afor this order."
+      broadcast: "&6%player% &avừa tạo đơn hàng: &e%amount%x %material% &a(&e%price%&a mỗi món, tổng &e%total%&a, &e%currency%&a)"
     cancel:
       cannot: "&cKhông thể hủy đơn hàng này. Có thể đơn đã hoàn thành hoặc không tồn tại."
       refund: "&aĐã hoàn trả &e%amount% &avề tài khoản của bạn."

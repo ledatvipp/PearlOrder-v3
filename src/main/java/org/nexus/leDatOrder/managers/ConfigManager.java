@@ -154,6 +154,9 @@ public class ConfigManager {
         if (!config.contains(basePath + ".order.creation.payment-success")) {
             config.set(basePath + ".order.creation.payment-success", "&aYou have paid &e%amount% &afor this order.");
         }
+        if (!config.contains(basePath + ".order.creation.broadcast")) {
+            config.set(basePath + ".order.creation.broadcast", "&6%player% &avừa tạo đơn hàng: &e%amount%x %material% &a(&e%price%&a mỗi món, tổng &e%total%&a, &e%currency%&a)");
+        }
 
         // Currency messages
         if (!config.contains(basePath + ".currency.vault-unavailable")) {
