@@ -40,6 +40,9 @@ messages:
       partial: "&aĐã nhận &e%collected% %material%&a. Phần còn lại đã rơi xuống đất do túi đồ đầy."
       success: "&aĐã nhận &e%amount% %material%!"
       completed: "&aĐơn hàng đã hoàn thành và được xóa khỏi hệ thống."
+    drop:
+      none: "&cNo delivered items available to drop."
+      success: "&aĐã thả &e%amount% %material% &axuống đất."
     completed-owner: "&aĐơn hàng %material% đã hoàn thành và được xóa khỏi hệ thống!"
 
   # Currency Messages
@@ -203,6 +206,14 @@ gui:
         - "&7Click to collect delivered items"
         - "&7Available: &e%received%"
       slot: 14
+
+    drop-item:
+      material: HOPPER
+      display-name: "&eDrop Items"
+      lore:
+        - "&7Drop delivered items to the ground"
+        - "&7Available: &e%received%"
+      slot: 15
   
   # Create Order GUI
   create-order:

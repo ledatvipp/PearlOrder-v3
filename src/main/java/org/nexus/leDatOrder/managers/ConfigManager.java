@@ -289,6 +289,13 @@ public class ConfigManager {
             config.set(basePath + ".order.collect.completed", "&aĐơn hàng đã hoàn thành và được xóa khỏi hệ thống.");
         }
 
+        if (!config.contains(basePath + ".order.drop.none")) {
+            config.set(basePath + ".order.drop.none", "&cNo delivered items available to drop.");
+        }
+        if (!config.contains(basePath + ".order.drop.success")) {
+            config.set(basePath + ".order.drop.success", "&aĐã thả &e%amount% %material% &axuống đất.");
+        }
+
         if (!config.contains(basePath + ".order.completed-owner")) {
             config.set(basePath + ".order.completed-owner", "&aĐơn hàng %material% đã hoàn thành và được xóa khỏi hệ thống!");
         }
@@ -507,9 +514,10 @@ public class ConfigManager {
         if (!config.contains(basePath + ".order-info-item.slot")) {
             config.set(basePath + ".order-info-item.slot", 13);
         }
-        
+
         setDefaultItem(basePath + ".cancel-item", "BARRIER", "&cCancel Order", 12, Arrays.asList("&7Click to cancel this order"));
         setDefaultItem(basePath + ".collect-item", "CHEST", "&aCollect Items", 14, Arrays.asList("&7Click to collect delivered items", "&7Available: &e%received%"));
+        setDefaultItem(basePath + ".drop-item", "HOPPER", "&eDrop Items", 15, Arrays.asList("&7Drop delivered items to the ground", "&7Available: &e%received%"));
     }
 
     private void setDefaultCreateOrderGUI() {
