@@ -187,6 +187,12 @@ public class OrderListener implements Listener {
             if (slot == collectSlot && clicked.getType() == collectMat) {
                 OrderManageGUI.collectItems(plugin, player);
             }
+
+            int dropSlot = plugin.getConfigManager().getItemSlot("gui.order-manage.drop-item", 15);
+            Material dropMat = plugin.getConfigManager().getItemMaterial("gui.order-manage.drop-item", Material.HOPPER);
+            if (slot == dropSlot && clicked.getType() == dropMat) {
+                OrderManageGUI.dropItems(plugin, player);
+            }
             return;
         }
 

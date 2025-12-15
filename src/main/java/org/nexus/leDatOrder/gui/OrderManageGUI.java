@@ -136,6 +136,39 @@ public class OrderManageGUI {
         if (collectSlot >= 0 && collectSlot < inventory.getSize()) {
             inventory.setItem(collectSlot, collectItem);
         }
+
+        // Nút thả vật phẩm xuống đất
+        int dropSlot = plugin.getConfigManager().getItemSlot("gui.order-manage.drop-item", 15);
+        Material dropMat = plugin.getConfigManager().getItemMaterial("gui.order-manage.drop-item", Material.HOPPER);
+        String dropName = plugin.getConfigManager().getItemDisplayName("gui.order-manage.drop-item", "&eDrop Items");
+        List<String> dropLoreCfg = plugin.getConfigManager().getItemLore("gui.order-manage.drop-item");
+        ItemStack dropItem = new ItemStack(dropMat);
+        ItemMeta dropMeta = dropItem.getItemMeta();
+        if (dropMeta != null) {
+            dropMeta.setDisplayName(ColorUtils.colorize(dropName));
+            List<String> lore = new ArrayList<>();
+            int availableToDrop = Math.max(0, order.getReceivedAmount() - order.getCollectedAmount());
+            if (dropLoreCfg != null && !dropLoreCfg.isEmpty()) {
+                for (String line : dropLoreCfg) {
+                    String processed = line
+                            .replace("%received%", String.valueOf(availableToDrop))
+                            .replace("%material%", order.getMaterial().name());
+                    lore.add(ColorUtils.colorize(processed));
+                }
+            } else {
+                if (availableToDrop > 0) {
+                    lore.add(ColorUtils.colorize("&7Drop delivered items to the ground"));
+                    lore.add(ColorUtils.colorize("&eAvailable: &f" + availableToDrop));
+                } else {
+                    lore.add(ColorUtils.colorize("&7No delivered items to drop"));
+                }
+            }
+            dropMeta.setLore(lore);
+            dropItem.setItemMeta(dropMeta);
+        }
+        if (dropSlot >= 0 && dropSlot < inventory.getSize()) {
+            inventory.setItem(dropSlot, dropItem);
+        }
     }
 
     public static Order getOrderByPlayer(Player player) {
@@ -274,6 +307,48 @@ public class OrderManageGUI {
         plugin.getOrderManager().saveOrders();
 
         // Mở lại GUI quản lý order
+        new OrderManageGUI(plugin, player, order).open();
+    }
+
+    public static void dropItems(LeDatOrder plugin, Player player) {
+        Order order = getOrderByPlayer(player);
+        if (order == null) return;
+
+        int availableItems = order.getReceivedAmount() - order.getCollectedAmount();
+        if (availableItems <= 0) {
+            player.sendMessage(plugin.getConfigManager().getMessage("order.drop.none"));
+            return;
+        }
+
+        Material material = order.getMaterial();
+        int remaining = availableItems;
+        while (remaining > 0) {
+            int stackSize = Math.min(material.getMaxStackSize(), remaining);
+            ItemStack stack = new ItemStack(material, stackSize);
+            player.getWorld().dropItemNaturally(player.getLocation(), stack);
+            remaining -= stackSize;
+        }
+
+        order.addCollectedAmount(availableItems);
+        order.consumeContributions(availableItems);
+
+        player.sendMessage(plugin.getConfigManager().getMessage(
+                "order.drop.success",
+                "%amount%",
+                String.valueOf(availableItems),
+                "%material%",
+                material.name()
+        ));
+
+        if (order.isCompleted() && order.getCollectedAmount() >= order.getReceivedAmount()) {
+            plugin.getOrderManager().removeOrder(order.getId());
+            player.sendMessage(plugin.getConfigManager().getMessage("order.collect.completed"));
+            removePlayer(player);
+            new MyOrderGUI(plugin, player).open();
+            return;
+        }
+
+        plugin.getOrderManager().saveOrders();
         new OrderManageGUI(plugin, player, order).open();
     }
 
