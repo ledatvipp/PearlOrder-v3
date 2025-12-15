@@ -2,9 +2,12 @@ package org.nexus.leDatOrder.gui;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
+import org.bukkit.Tag;
+import org.bukkit.block.ShulkerBox;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.BlockStateMeta;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.nexus.leDatOrder.LeDatOrder;
 import org.nexus.leDatOrder.models.Order;
@@ -136,6 +139,9 @@ public class OrderDeliveryGUI {
         // Kiểm tra các item trong inventory
         int deliveredAmount = 0;
         Map<Integer, ItemStack> returnItems = new HashMap<>();
+        int remainingNeeded = Math.max(0, order.getRequiredAmount() - order.getReceivedAmount());
+        int excessAmount = 0;
+        List<ItemStack> overflowItems = new ArrayList<>();
 
         Set<Integer> protectedSlots = new HashSet<>(plugin.getConfigManager().getOrderDeliveryBorderSlots());
         protectedSlots.add(plugin.getConfigManager().getOrderDeliveryOrderInfoSlot());
@@ -147,9 +153,33 @@ public class OrderDeliveryGUI {
             }
             ItemStack item = inventory.getItem(i);
             if (item != null) {
-                if (item.getType() == order.getMaterial()) {
-                    // Item đúng loại
-                    deliveredAmount += item.getAmount();
+                if (Tag.SHULKER_BOXES.isTagged(item.getType())) {
+                    ShulkerExtractionResult shulkerExtraction = extractFromShulker(item, order.getMaterial(), remainingNeeded);
+                    if (shulkerExtraction.deliveredAmount() > 0) {
+                        deliveredAmount += shulkerExtraction.deliveredAmount();
+                        remainingNeeded = Math.max(0, remainingNeeded - shulkerExtraction.deliveredAmount());
+                    }
+
+                    if (!shulkerExtraction.overflowItems().isEmpty()) {
+                        overflowItems.addAll(shulkerExtraction.overflowItems());
+                        for (ItemStack overflow : shulkerExtraction.overflowItems()) {
+                            excessAmount += overflow.getAmount();
+                        }
+                    }
+
+                    returnItems.put(i, shulkerExtraction.updatedShulker());
+                } else if (item.getType() == order.getMaterial()) {
+                    int canTake = Math.min(item.getAmount(), remainingNeeded);
+                    deliveredAmount += canTake;
+                    remainingNeeded = Math.max(0, remainingNeeded - canTake);
+
+                    int leftover = item.getAmount() - canTake;
+                    if (leftover > 0) {
+                        ItemStack excessStack = item.clone();
+                        excessStack.setAmount(leftover);
+                        returnItems.put(i, excessStack);
+                        excessAmount += leftover;
+                    }
                 } else {
                     // Item không đúng loại, trả lại cho người chơi
                     returnItems.put(i, item);
@@ -162,19 +192,15 @@ public class OrderDeliveryGUI {
             for (Map.Entry<Integer, ItemStack> entry : returnItems.entrySet()) {
                 player.getInventory().addItem(entry.getValue());
             }
+            for (ItemStack overflow : overflowItems) {
+                player.getInventory().addItem(overflow);
+            }
             removePlayer(player);
             return;
         }
 
         // Tính toán số lượng thừa cần trả lại
-        int remainingNeeded = order.getRequiredAmount() - order.getReceivedAmount();
-        int excessAmount = 0;
         int actualDelivered = deliveredAmount;
-
-        if (deliveredAmount > remainingNeeded) {
-            excessAmount = deliveredAmount - remainingNeeded;
-            actualDelivered = remainingNeeded;
-        }
 
         inventory.clear();
 
@@ -226,11 +252,12 @@ public class OrderDeliveryGUI {
         for (Map.Entry<Integer, ItemStack> entry : returnItems.entrySet()) {
             player.getInventory().addItem(entry.getValue());
         }
+        for (ItemStack overflow : overflowItems) {
+            player.getInventory().addItem(overflow);
+        }
 
         // Trả lại số lượng thừa nếu có
         if (excessAmount > 0) {
-            ItemStack excessItems = new ItemStack(order.getMaterial(), excessAmount);
-            player.getInventory().addItem(excessItems);
             player.sendMessage(plugin.getConfigManager().getMessage(
                     "delivery.excess-returned",
                     "%amount%",
@@ -251,5 +278,58 @@ public class OrderDeliveryGUI {
         plugin.getFoliaLib().getScheduler().runAtEntity(player, (task) -> {
             new OrderGUI(plugin, player).open();
         });
+    }
+
+    private static ShulkerExtractionResult extractFromShulker(ItemStack shulkerItem, Material targetMaterial, int remainingNeeded) {
+        ItemMeta baseMeta = shulkerItem.getItemMeta();
+        if (!(baseMeta instanceof BlockStateMeta blockStateMeta)) {
+            return new ShulkerExtractionResult(shulkerItem, 0, new ArrayList<>());
+        }
+
+        if (!(blockStateMeta.getBlockState() instanceof ShulkerBox shulkerBox)) {
+            return new ShulkerExtractionResult(shulkerItem, 0, new ArrayList<>());
+        }
+
+        if (remainingNeeded <= 0) {
+            return new ShulkerExtractionResult(shulkerItem, 0, new ArrayList<>());
+        }
+
+        Inventory boxInventory = shulkerBox.getInventory();
+        int extracted = 0;
+        List<ItemStack> overflowItems = new ArrayList<>();
+
+        for (int slot = 0; slot < boxInventory.getSize(); slot++) {
+            ItemStack content = boxInventory.getItem(slot);
+            if (content == null || content.getType() != targetMaterial) {
+                continue;
+            }
+
+            int deliverable = Math.max(0, Math.min(content.getAmount(), remainingNeeded - extracted));
+            int overflowCount = content.getAmount() - deliverable;
+
+            if (deliverable > 0) {
+                extracted += deliverable;
+            }
+
+            if (overflowCount > 0) {
+                ItemStack overflowStack = content.clone();
+                overflowStack.setAmount(overflowCount);
+                overflowItems.add(overflowStack);
+            }
+
+            boxInventory.setItem(slot, null);
+
+            if (extracted >= remainingNeeded) {
+                break;
+            }
+        }
+
+        blockStateMeta.setBlockState(shulkerBox);
+        shulkerItem.setItemMeta(blockStateMeta);
+
+        return new ShulkerExtractionResult(shulkerItem, extracted, overflowItems);
+    }
+
+    private record ShulkerExtractionResult(ItemStack updatedShulker, int deliveredAmount, List<ItemStack> overflowItems) {
     }
 }
